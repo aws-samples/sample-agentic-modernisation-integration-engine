@@ -37,7 +37,7 @@ dependencies = [
     # resolving + importing + parsing both pins against tree-sitter==0.23.2.
     "tree-sitter-c-sharp==0.21.3",
     "tree-sitter-c==0.23.4",
-    "GitPython==3.1.43",
+    "GitPython==3.1.58",
     "defusedxml==0.7.1",
     "requests==2.32.3",
     "httpx==0.28.1",
