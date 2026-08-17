@@ -1,4 +1,4 @@
-# Code Analyse and Transformation Engine
+# Agentic Modernisation Integration Engine
 
 > Autonomous AI agents that analyze, document, and modernize legacy codebases — so engineers can make decisions while agents do the work.
 
