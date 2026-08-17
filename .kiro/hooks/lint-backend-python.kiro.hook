@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "name": "Lint Python Trees",
+  "description": "Runs ruff (make lint) over every Python tree in the repo after a Python file is saved. Exits non-zero when any tree fails lint — a failed lint is a failed hook (Build Constraint 22: no || true, no || echo, no 2>/dev/null, no set +e).",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "backend/**/*.py",
+      "atx-analysis-agent/**/*.py",
+      "atx-transform-agent/**/*.py"
+    ]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "set -e; for d in backend atx-analysis-agent atx-transform-agent; do echo \"== make lint $d ==\"; (cd \"$d\" && make lint); done; echo \"lint OK\"",
+    "timeout": 60
+  }
+}

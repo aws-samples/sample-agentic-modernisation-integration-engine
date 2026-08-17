@@ -1,0 +1,24 @@
+{
+  "kiro.terminalCommands.allowList": [
+    "uv",
+    "make",
+    "npm",
+    "cp",
+    "mkdir",
+    "date",
+    "touch",
+    "find",
+    "ls",
+    "timeout",
+    "cat",
+    "grep",
+    "echo",
+    "chmod",
+    "nvm",
+    "rm -rf temp_scripts/",
+    "rm temp_scripts/",
+    "rm /tmp",
+    "rm -rf /tmp",
+    "docker"
+  ]
+}

@@ -1,0 +1,39 @@
+[project]
+name = "atx-analysis-agent"
+version = "0.1.0"
+description = "ATX CLI Analysis Agent — FastAPI service wrapping AWS Application Transformation CLI."
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi==0.115.5",
+    "uvicorn[standard]==0.32.1",
+    "pydantic==2.10.3",
+    "pydantic-settings==2.6.1",
+    # Declared explicitly: main.py imports sse_starlette directly, and
+    # tests/test_streaming.py depends on specific sse_starlette.sse.AppStatus
+    # reset behaviour. Leaving it transitive means an unpinned version.
+    "sse-starlette==2.1.3",
+]
+
+[dependency-groups]
+dev = [
+    "pytest==8.3.4",
+    "pytest-asyncio==0.24.0",
+    "httpx==0.28.1",
+    "ruff==0.8.4",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+[tool.pytest-asyncio]
+mode = "auto"

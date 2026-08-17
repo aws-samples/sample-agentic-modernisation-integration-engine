@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "name": "Run Tests After Task",
+  "description": "Runs backend and frontend test suites after each spec task completes to catch regressions. Both suites always run — neither short-circuits the other — and the hook exits non-zero if either fails (Build Constraint 22: no || true, no || echo, no 2>/dev/null, no set +e).",
+  "version": "1",
+  "when": {
+    "type": "postTaskExecution"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "b=0; f=0; echo \"== backend: make test ==\"; (cd backend && make test) || b=1; echo \"== frontend: npm run test ==\"; (cd frontend && npm run test) || f=1; if [ \"$b\" -ne 0 ] || [ \"$f\" -ne 0 ]; then echo \"TESTS FAILED (backend=$b frontend=$f)\"; exit 1; fi; echo \"tests OK (backend and frontend)\"",
+    "timeout": 300
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "name": "TypeCheck Frontend",
+  "description": "Runs TypeScript type checking (tsc --noEmit) on frontend files after saving. Exits non-zero on any type error (Build Constraint 22: no || true, no || echo, no 2>/dev/null, no set +e).",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "frontend/src/**/*.ts",
+      "frontend/src/**/*.tsx"
+    ]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "cd frontend && npm run lint",
+    "timeout": 60
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "name": "Validate Docker Compose",
+  "description": "Validates docker-compose.yml whenever it's edited to catch configuration errors early. Uses `docker compose` (the v2 plugin form, matching Task 30 and #tech) — the hyphenated `docker-compose` is not installed. `config` checks schema and interpolation only; it does not resolve build contexts, so it cannot tell you a context is missing — but every service the file declares now has a context a task creates, so a missing one is a defect to fix rather than a tolerated condition. Exits non-zero on invalid config (Build Constraint 22: no || true, no || echo, no 2>/dev/null, no set +e).",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "docker-compose.yml",
+      "docker-compose.yaml"
+    ]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "docker compose config --quiet && echo \"docker-compose.yml OK\"",
+    "timeout": 30
+  }
+}

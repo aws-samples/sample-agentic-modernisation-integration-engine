@@ -1,0 +1,17 @@
+# Build-context exclusions for the frontend image.
+#
+# Dockerfile stage 1 does `COPY package.json package-lock.json ./` -> `npm ci`
+# -> `COPY . .`. Without this file that final COPY overlays a host node_modules
+# (built for the host platform, not linux/arm64) on top of the one npm ci just
+# installed, and ships a stale host dist/ into the build stage.
+#
+# NOTE: package-lock.json MUST NOT be excluded — `npm ci` requires it.
+node_modules/
+dist/
+.vite/
+coverage/
+playwright-report/
+test-results/
+.env
+.env.local
+.DS_Store

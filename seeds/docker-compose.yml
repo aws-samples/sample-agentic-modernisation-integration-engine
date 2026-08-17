@@ -1,0 +1,222 @@
+# ============================================================================
+# Code Transformation Engine - Local Development Stack
+#
+# Software 3.0 microservices: React frontend + FastAPI backend orchestrator +
+# two specialized autonomous AI agents (ATX analysis, ATX transform).
+#
+# This file declares exactly the four services a task in `tasks.md` produces —
+# `frontend`, `backend`, `atx-analysis-agent`, `atx-transform-agent` — so every
+# build context named below is a directory the build creates and `up --build`
+# needs no scoping. Services whose producing task was withdrawn are not declared
+# here; see design.md "Service Registry" for the record of what was removed.
+#
+# Conventions (per design.md Service Registry & Docker Volume Mapping):
+#   - All services bind to 127.0.0.1 only (no external network exposure).
+#   - security_opt: no-new-privileges:true on every service.
+#   - platform: linux/arm64 (required by ECS Fargate + AgentCore Runtime).
+#   - deploy.resources.limits pinned per the Service Registry table.
+#   - Health checks on every service; restart: unless-stopped.
+#   - frontend bridges frontend-net + backend-net; backend and both ATX agents
+#     are backend-net only.
+#
+# Usage:
+#   cp .env.example .env
+#   docker compose up -d --build                 # full stack (all four services)
+#   docker compose up -d --build backend         # single service
+#   docker compose logs -f backend               # tail logs
+# ============================================================================
+
+services:
+  # --------------------------------------------------------------------------
+  # Frontend — React 18 SPA served by Nginx, reverse-proxies to backend + agents.
+  # --------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: code-transformation-engine/frontend:latest
+    platform: linux/arm64
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - BACKEND_URL=http://backend:8000
+    networks:
+      - frontend-net
+      - backend-net
+    depends_on:
+      - backend
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+
+  # --------------------------------------------------------------------------
+  # Backend API — FastAPI orchestrator (Tree-sitter parsing, Strands agents).
+  # --------------------------------------------------------------------------
+  #
+  # Credentials (Requirement 19): this file is the LOCAL-DEV path
+  # (AGENTCORE_MODE=false) — AWS keys and GITHUB_TOKEN come from the git-ignored
+  # .env via env_file and are never hardcoded here. In AgentCore mode credentials
+  # are NOT injected: AWS access is via the per-agent execution role and the
+  # GitHub PAT is fetched at invocation time from AgentCore Identity
+  # (GetWorkloadAccessToken). Leave GITHUB_TOKEN/AWS_* blank for AgentCore mode.
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: code-transformation-engine/backend:latest
+    platform: linux/arm64
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-us.anthropic.claude-sonnet-4-5-20250929-v1:0}
+      - AUTH_DISABLED=${AUTH_DISABLED:-true}
+      - AGENTCORE_MODE=${AGENTCORE_MODE:-false}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
+    # KIRO_CLI_AGENT_URL is deliberately NOT injected here. The backend's Kiro CLI
+    # SSE proxy endpoint (Task 10) reads the setting, but the `kiro-cli-agent`
+    # service it pointed at is produced by no task, so this file must not name a
+    # host it does not declare. The setting survives in `.env.example` — where its
+    # target is documented as unreachable in this build — so an operator running a
+    # kiro-cli-agent out of band can still supply it via env_file.
+    volumes:
+      - backend-data:/app/temp
+      - shared-repos:/app/shared_repos
+      - transformation-definitions:/app/shared/transformation_def
+    networks:
+      - backend-net
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2.0"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  # --------------------------------------------------------------------------
+  # ATX Analysis Agent — ATX CLI code assessment with SSE streaming.
+  # --------------------------------------------------------------------------
+  atx-analysis-agent:
+    build:
+      context: ./atx-analysis-agent
+      dockerfile: Dockerfile
+    image: code-transformation-engine/atx-analysis-agent:latest
+    platform: linux/arm64
+    ports:
+      - "127.0.0.1:8004:8004"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-us.anthropic.claude-sonnet-4-5-20250929-v1:0}
+      - AGENTCORE_MODE=${AGENTCORE_MODE:-false}
+    volumes:
+      - atx-analysis-storage:/app/storage
+    networks:
+      - backend-net
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2.0"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8004/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  # --------------------------------------------------------------------------
+  # ATX Transform Agent — Java modernization (diff + PR), reads transform defs.
+  #
+  # GitHub PR creation (Requirement 19): no GITHUB_TOKEN is injected here in
+  # AgentCore mode — the PAT is fetched at invocation time from AgentCore
+  # Identity (GetWorkloadAccessToken). For local dev it falls back to the
+  # GITHUB_TOKEN supplied via .env (env_file below).
+  # --------------------------------------------------------------------------
+  atx-transform-agent:
+    build:
+      context: ./atx-transform-agent
+      dockerfile: Dockerfile
+    image: code-transformation-engine/atx-transform-agent:latest
+    platform: linux/arm64
+    ports:
+      - "127.0.0.1:8005:8005"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-us.anthropic.claude-sonnet-4-5-20250929-v1:0}
+      - AGENTCORE_MODE=${AGENTCORE_MODE:-false}
+    volumes:
+      - atx-java-transform-storage:/app/storage
+      - transformation-definitions:/app/shared/transformation_def:ro
+    networks:
+      - backend-net
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2.0"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8005/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+# ----------------------------------------------------------------------------
+# Named volumes (per design.md Docker Volume Mapping table).
+# ----------------------------------------------------------------------------
+volumes:
+  backend-data:                 # backend:/app/temp — analysis JSON storage
+  shared-repos:                 # backend:/app/shared_repos — cloned repositories
+  atx-analysis-storage:         # atx-analysis:/app/storage — conversation data
+  atx-java-transform-storage:   # atx-transform:/app/storage — transform results
+  transformation-definitions:   # backend (rw) + atx-transform (ro) — ATX defs
+# `design-doc-storage` and `ant-to-maven-storage` were declared here and are gone:
+# their only mounts were services whose producing task was withdrawn. `shared-repos`
+# stays because `backend` mounts it (its other mounts were withdrawn services), and
+# `transformation-definitions` keeps its rw/ro asymmetry, which design.md Property 5
+# pins.
+
+# ----------------------------------------------------------------------------
+# Networks — frontend isolated on frontend-net; all HTTP on backend-net.
+# ----------------------------------------------------------------------------
+networks:
+  frontend-net:
+    driver: bridge
+  backend-net:
+    driver: bridge
