@@ -1,0 +1,25 @@
+# Optional pre-commit hooks. Opt-in — not required to contribute.
+#
+# Enable locally with:
+#   uv tool install pre-commit   # or: pipx install pre-commit
+#   pre-commit install
+#
+# The gitleaks hook scans STAGED changes (`gitleaks git --staged`), so a secret is
+# caught before it enters a commit — the earliest point at which it is still free
+# to fix. Once it is in a commit, the cheapest remaining option is rotating the
+# credential.
+#
+# It picks up this repo's .gitleaks.toml automatically, and CI runs the same
+# scanner as a backstop (.github/workflows/secret-scan.yml), so skipping the hook
+# never lets a secret through — the hook only shortens the feedback loop.
+#
+# Deliberately gitleaks-only. Linting and formatting are NOT here: this repo runs
+# ruff through `backend/Makefile` and `tsc` through npm scripts (see
+# .kiro/steering/dev-env.md), and a pre-commit copy of those would be a second
+# declaration of the same tool versions, free to drift from the ones the Makefile
+# and package.json pin.
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1 # keep in sync with .github/workflows/secret-scan.yml
+    hooks:
+      - id: gitleaks

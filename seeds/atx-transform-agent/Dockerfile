@@ -8,8 +8,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 22+ (required by ATX CLI)
+# `--no-install-recommends` matches the layer above and is what Trivy's DS-0029
+# check asserts (a HIGH finding without it). Recommended packages here are build
+# and doc extras the ATX CLI does not need, and every one of them is additional
+# attack surface plus additional CVEs for the image scan to report.
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y nodejs \
+    && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 # Install ATX CLI
