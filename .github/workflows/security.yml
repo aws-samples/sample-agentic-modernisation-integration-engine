@@ -1,0 +1,203 @@
+name: Security
+
+# Supply-chain and configuration gates. Three jobs, three different axes:
+#
+#   trivy-fs      — dependency CVEs + committed secrets across the whole tree.
+#   trivy-config  — misconfiguration in the Dockerfiles and docker-compose.yml
+#                   this repo ships (non-root user, no-new-privileges, etc.).
+#   dependency-review — license policy + new-vulnerability diff, PR only.
+#
+# First-party static analysis (SAST) is a separate concern and is deliberately NOT
+# here: CodeQL runs through GitHub's "default setup" (a repo setting under
+# Settings → Code security), which an advanced workflow config cannot coexist with
+# — its SARIF uploads are rejected outright. Do not add a CodeQL job to this file;
+# it would break the analysis that already runs. Secret scanning over git HISTORY
+# lives in secret-scan.yml.
+#
+# WHY `schedule` IS HERE: the dependency graph goes stale without the code
+# changing. A new advisory against an already-pinned package is the normal case,
+# and a PR-only gate would not notice until someone happened to open a PR. Both
+# uv.lock and package-lock.json are committed, so a vulnerable version stays
+# pinned until something looks.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Mondays 07:30 UTC — half an hour after secret-scan.yml's 07:00 sweep, so
+    # the two weekly jobs do not contend for runners.
+    - cron: "30 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  trivy-fs:
+    name: Trivy filesystem (vulns + secrets)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      # Trivy reads uv.lock, requirements.txt and package-lock.json natively, so
+      # there is no `uv export` step here. The consequence is worth stating: a
+      # dependency is only scanned once its LOCKFILE is committed. A bare
+      # pyproject.toml with no uv.lock contributes nothing to this scan.
+      #
+      # `exit-code: 1` makes this a GATE, not a report. Without it the job would
+      # upload SARIF and pass, and "Security passed" would attest that a scan
+      # completed rather than that it was clean.
+      #
+      # `severity` + `limit-severities-for-sarif` are a PAIR and must stay
+      # together. trivy-action's entrypoint runs `unset TRIVY_SEVERITY` whenever
+      # format is sarif and limit-severities-for-sarif is not true — so passing
+      # `severity` alone is silently discarded and the gate fires on LOW and
+      # MEDIUM too. That is a defensible policy, but it is not the one written
+      # here, and a gate whose real threshold differs from its declared one gets
+      # worked around rather than fixed.
+      #
+      # `ignore-unfixed: true` — an unfixed CVE cannot be actioned by bumping a
+      # version, so blocking on it only teaches contributors to bypass the gate.
+      # Those findings still reach the Security tab via the SARIF upload.
+      #
+      # No `scanners` input, so Trivy runs its defaults: the log will show both
+      # `[vuln] Vulnerability scanning is enabled` and `[secret] Secret scanning
+      # is enabled`. Passing `scanners: vuln` would drop the secret findings.
+      #
+      # SHA-pinned, as every third-party action here is — a floating tag on a
+      # third-party action is a remote-code-execution path into CI. This commit is
+      # tag v0.35.0, which bundles Trivy v0.69.3; the two version numbers differ
+      # because the action and the scanner are versioned independently.
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0 (Trivy v0.69.3)
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-fs.sarif
+          severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
+          ignore-unfixed: true
+          exit-code: "1"
+
+      # The SARIF step above writes findings to a FILE, so a failing gate logs an
+      # exit code and names nothing. This re-runs the same scan as a table so the
+      # finding is visible in the log without an out-of-band API call.
+      #
+      # `if: failure()` — a green run pays nothing. `exit-code: '0'` — this step
+      # must not be the one that fails the job; the gate above already did, and a
+      # second failure obscures which step is authoritative.
+      - name: Show Trivy findings in the log
+        if: failure()
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0 (Trivy v0.69.3)
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "0"
+
+      # `always()` is load-bearing now that the scan can fail: without it a
+      # CRITICAL finding would fail the scan step and SKIP the upload, hiding the
+      # very finding that failed the build from the Security tab.
+      - name: Upload Trivy filesystem results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-fs.sarif
+          # Distinct category per upload; two SARIF uploads without it overwrite
+          # each other's alerts rather than coexisting.
+          category: trivy-fs
+
+  trivy-config:
+    name: Trivy config (Dockerfiles, compose)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      # A separate job rather than a `scanners: misconfig` input on the job above,
+      # because the two have different failure modes and should be separately
+      # legible: a CVE in a lockfile is fixed by a version bump, a Dockerfile
+      # misconfiguration is fixed by editing the Dockerfile.
+      #
+      # This repo ships four Dockerfiles plus docker-compose.yml, and the
+      # container conventions it commits to (non-root user, health checks,
+      # no-new-privileges, resource limits) are exactly what Trivy's Docker checks
+      # assert. This job is what keeps those from being aspirational.
+      #
+      # Gated at CRITICAL,HIGH deliberately: the MEDIUM/LOW Docker checks
+      # (DS026 missing HEALTHCHECK and friends) are advisory in character, and a
+      # gate that fires on them would be routed around within a week. They still
+      # land in the Security tab through the SARIF upload.
+      - name: Run Trivy config scan
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0 (Trivy v0.69.3)
+        with:
+          scan-type: config
+          scan-ref: .
+          format: sarif
+          output: trivy-config.sarif
+          severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
+          exit-code: "1"
+
+      - name: Show Trivy config findings in the log
+        if: failure()
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0 (Trivy v0.69.3)
+        with:
+          scan-type: config
+          scan-ref: .
+          format: table
+          severity: CRITICAL,HIGH
+          exit-code: "0"
+
+      - name: Upload Trivy config results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-config.sarif
+          category: trivy-config
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # PR-only by construction: the action diffs the base and head dependency
+    # graphs, so it has nothing to compare on a push or a schedule. Scoped to this
+    # repository so forks do not fail a check they cannot enable — the dependency
+    # graph is a repo setting, not something a fork inherits.
+    if: github.event_name == 'pull_request' && github.repository == 'aws-samples/sample-agentic-modernisation-integration-engine'
+    permissions:
+      contents: read
+      # Needed only by `comment-summary-in-pr` below. Job-scoped rather than
+      # workflow-scoped so the two Trivy jobs cannot write to PRs.
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      # SHA-pinned: actions/dependency-review-action stopped publishing a moving
+      # major tag after v3, so `@v5` does not resolve at all. This commit is tag
+      # v5.0.0.
+      #
+      # `deny-licenses` is the half that Trivy does not cover — a copyleft
+      # dependency is a licensing problem, not a vulnerability, and nothing else
+      # in this setup would notice one arriving. It matters more here than in most
+      # repos: this sample is MIT-0, the most permissive license Amazon publishes
+      # under, so a copyleft dependency is maximally incompatible with what
+      # downstream users are told they can do with the code.
+      - name: Dependency Review
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0, LGPL-3.0
+          comment-summary-in-pr: on-failure
