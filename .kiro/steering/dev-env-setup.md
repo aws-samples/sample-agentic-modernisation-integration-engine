@@ -36,22 +36,16 @@ version = "0.1.0"
 description = "Code Transformation Engine backend (FastAPI + Strands agents)."
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi==0.115.5",
+    "fastapi==0.141.1",
     "uvicorn[standard]==0.32.1",
-    "python-multipart==0.0.17",
-    # boto3/botocore bumped to >=1.35.74 to satisfy langchain-aws==0.2.10.
+    "python-multipart==0.0.31",
+    # boto3/botocore floor kept at >=1.35.74 for recent Bedrock runtime APIs.
     "boto3>=1.35.74,<1.36.0",
     "botocore>=1.35.74,<1.36.0",
-    "langchain-aws==0.2.10",
-    # LangChain core orchestration (0.3+); langchain-aws==0.2.10
-    # already constrains langchain-core, so the resolver aligns the two.
-    "langchain>=0.3,<0.4",
-    # CrewAI multi-step agent chains (0.80+ per tech steering).
-    "crewai>=0.80",
-    "strands-agents>=1.0.0,<2.0.0",
-    "pydantic==2.10.3",
+    "strands-agents>=1.30.0,<2.0.0",
+    "pydantic==2.12.5",
     "pydantic-settings==2.6.1",
-    "python-jose[cryptography]==3.3.0",
+    "python-jose[cryptography]==3.5.0",
     "passlib[bcrypt]==1.7.4",
     # bcrypt pinned <4.1: passlib 1.7.4's backend self-test hashes a >72-byte
     # value, which bcrypt >=4.1 rejects with ValueError.
@@ -67,12 +61,12 @@ dependencies = [
     # between 13 and 14". 0.21.3 reports a supported ABI and parses C# fine.
     "tree-sitter-c-sharp==0.21.3",
     "tree-sitter-c==0.23.4",
-    "GitPython==3.1.43",
+    "GitPython==3.1.59",
     "defusedxml==0.7.1",
-    "requests==2.32.3",
+    "requests==2.33.0",
     "httpx==0.28.1",
     # Direct import in routes/ai_streaming.py — declared so it is not left to
-    # resolve transitively via crewai->litellm or via mcp at an unpinned version.
+    # resolve transitively via mcp at an unpinned version.
     "sse-starlette==2.1.3",
 ]
 

@@ -1,0 +1,9 @@
+# Local build artifacts — never needed in the image.
+# NOTE: prompts/ MUST NOT be excluded; the prompt templates are loaded at
+# runtime from /app/prompts inside the container.
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+temp/

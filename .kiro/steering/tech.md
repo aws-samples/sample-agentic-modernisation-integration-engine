@@ -17,8 +17,7 @@
 |----------|-----------|---------|
 | Web framework | FastAPI + Uvicorn | Async API, SSE streaming, background tasks |
 | AI agents | Strands Agents 1.0+ | Autonomous agent orchestration with tools |
-| LLM access | boto3 + langchain-aws | AWS Bedrock Claude invocation |
-| Agent chains | LangChain 0.3+, CrewAI 0.80+ | Multi-step reasoning chains |
+| LLM access | boto3 (Bedrock Runtime) | AWS Bedrock Claude invocation |
 | Code parsing | Tree-sitter | AST extraction (Java, Python, JS, C#, C) |
 | Git operations | GitPython | Repository clone, branch management |
 | Validation | Pydantic 2.5+ | Request/response schema validation |

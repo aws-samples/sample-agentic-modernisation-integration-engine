@@ -41,3 +41,6 @@ shared_repos/
 # AWS / secrets
 *.pem
 credentials
+
+# Hypothesis test-data cache (regenerated on demand)
+.hypothesis/
