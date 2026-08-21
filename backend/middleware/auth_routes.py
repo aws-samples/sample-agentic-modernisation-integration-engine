@@ -5,9 +5,9 @@ from __future__ import annotations
 import secrets
 import time
 
+import jwt
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
-from jose import jwt
 
 from config import settings
 from models import AuthConfig, LoginRequest, TokenResponse

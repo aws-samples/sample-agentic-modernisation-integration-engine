@@ -2,8 +2,8 @@
 
 from unittest.mock import patch
 
+import jwt
 from fastapi.testclient import TestClient
-from jose import jwt
 
 from main import app
 

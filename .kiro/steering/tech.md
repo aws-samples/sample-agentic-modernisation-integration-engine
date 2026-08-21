@@ -21,7 +21,7 @@
 | Code parsing | Tree-sitter | AST extraction (Java, Python, JS, C#, C) |
 | Git operations | GitPython | Repository clone, branch management |
 | Validation | Pydantic 2.5+ | Request/response schema validation |
-| Auth | python-jose, passlib | JWT (HS256/RS256), password hashing |
+| Auth | pyjwt, passlib | JWT (HS256/RS256), password hashing |
 | Rate limiting | slowapi | 60 req/min per IP |
 | Security | defusedxml | Safe XML parsing (pom.xml, build.xml) |
 | Vulnerability | requests → OSV API | CVE scanning across 8 ecosystems |

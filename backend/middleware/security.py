@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import time
 from typing import Any
 
 import httpx
+import jwt
 from fastapi import Request, Response
-from jose import JWTError, jwt
+from jwt import PyJWTError
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -100,7 +102,7 @@ def _validate_cognito_token(token: str) -> dict[str, Any]:
     """Validate a JWT signed by Cognito (RS256 via JWKS)."""
     jwks = _get_cognito_jwks()
     if not jwks.get("keys"):
-        raise JWTError("JWKS keys not available")
+        raise PyJWTError("JWKS keys not available")
 
     # Decode header to find the key id
     unverified_header = jwt.get_unverified_header(token)
@@ -114,16 +116,19 @@ def _validate_cognito_token(token: str) -> dict[str, Any]:
             break
 
     if not rsa_key:
-        raise JWTError("Unable to find matching JWKS key")
+        raise PyJWTError("Unable to find matching JWKS key")
 
     issuer = (
         f"https://cognito-idp.{settings.AWS_REGION}.amazonaws.com/"
         f"{settings.COGNITO_USER_POOL_ID}"
     )
 
+    # PyJWT needs an RSA public key object, not a raw JWK dict; convert it.
+    public_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(rsa_key))
+
     payload = jwt.decode(
         token,
-        rsa_key,
+        public_key,
         algorithms=["RS256"],
         audience=settings.COGNITO_CLIENT_ID,
         issuer=issuer,
@@ -185,7 +190,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                     status_code=500,
                     content={"detail": "Unknown auth mode"},
                 )
-        except JWTError as e:
+        except PyJWTError as e:
             logger.warning("JWT validation failed: %s", e)
             return JSONResponse(
                 status_code=401,

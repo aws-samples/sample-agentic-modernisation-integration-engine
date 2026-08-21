@@ -45,7 +45,7 @@ dependencies = [
     "strands-agents>=1.30.0,<2.0.0",
     "pydantic==2.12.5",
     "pydantic-settings==2.6.1",
-    "python-jose[cryptography]==3.5.0",
+    "pyjwt[crypto]==2.13.0",
     "passlib[bcrypt]==1.7.4",
     # bcrypt pinned <4.1: passlib 1.7.4's backend self-test hashes a >72-byte
     # value, which bcrypt >=4.1 rejects with ValueError.
