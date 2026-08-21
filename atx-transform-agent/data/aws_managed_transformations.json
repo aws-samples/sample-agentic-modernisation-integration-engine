@@ -1,0 +1,121 @@
+[
+  {
+    "id": "AWS/java-aws-sdk-v1-to-v2",
+    "name": "AWS SDK V1 to V2 (Java)",
+    "description": "Upgrade the AWS SDK from V1 to V2 for Java projects using Maven or Gradle",
+    "source": "AWS SDK V1",
+    "target": "AWS SDK V2",
+    "type": "aws-managed",
+    "atxCommand": "atx custom def exec -n AWS/java-aws-sdk-v1-to-v2 -p . -x -t"
+  },
+  {
+    "id": "AWS/nodejs-aws-sdk-v2-to-v3",
+    "name": "AWS SDK JS v2 to v3 (Node.js)",
+    "description": "Upgrade Node.js applications from AWS SDK for JavaScript v2 to v3 with modular architecture",
+    "source": "AWS SDK JS v2",
+    "target": "AWS SDK JS v3",
+    "type": "aws-managed",
+    "atxCommand": "atx custom def exec -n AWS/nodejs-aws-sdk-v2-to-v3 -p . -x -t"
+  },
+  {
+    "id": "AWS/python-boto2-to-boto3",
+    "name": "boto2 to boto3 (Python)",
+    "description": "Migrate Python applications from boto2 to boto3",
+    "source": "boto2",
+    "target": "boto3",
+    "type": "aws-managed",
+    "atxCommand": "atx custom def exec -n AWS/python-boto2-to-boto3 -p . -x -t"
+  },
+  {
+    "id": "AWS/python-version-upgrade",
+    "name": "Python Version Upgrade",
+    "description": "Migrate Python projects from Python 3.8/3.9 to Python 3.11/3.12/3.13",
+    "source": "Python 3.8/3.9",
+    "target": "Python 3.11+",
+    "type": "aws-managed",
+    "atxCommand": "atx custom def exec -n AWS/python-version-upgrade -p . -x -t"
+  },
+  {
+    "id": "AWS/nodejs-version-upgrade",
+    "name": "Node.js Version Upgrade",
+    "description": "Upgrade NodeJS applications from any source to any target version",
+    "source": "Node.js (any)",
+    "target": "Node.js (any)",
+    "type": "aws-managed",
+    "atxCommand": "atx custom def exec -n AWS/nodejs-version-upgrade -p . -x -t"
+  },
+  {
+    "id": "AWS/java-version-upgrade",
+    "name": "Java Version Upgrade",
+    "description": "Upgrade Java applications from any source JDK to any target JDK with comprehensive dependency modernization",
+    "source": "Java (any)",
+    "target": "Java (any)",
+    "type": "aws-managed",
+    "atxCommand": "atx custom def exec -n AWS/java-version-upgrade -p . -x -t"
+  },
+  {
+    "id": "AWS/early-access-java-x86-to-graviton",
+    "name": "Java x86 to Graviton",
+    "description": "Validates Java application compatibility with Arm64 architecture for AWS Graviton Processors",
+    "source": "Java x86",
+    "target": "Java Graviton/Arm64",
+    "type": "aws-managed",
+    "atxCommand": "atx custom def exec -n AWS/early-access-java-x86-to-graviton -p . -x -t"
+  },
+  {
+    "id": "AWS/early-access-angular-to-react-migration",
+    "name": "Angular to React",
+    "description": "Transform an Angular application to React",
+    "source": "Angular",
+    "target": "React",
+    "type": "aws-managed",
+    "atxCommand": "atx custom def exec -n AWS/early-access-angular-to-react-migration -p . -x -t"
+  },
+  {
+    "id": "AWS/comprehensive-codebase-analysis",
+    "name": "Comprehensive Codebase Analysis",
+    "description": "Deep static analysis generating documentation covering architecture, behavior, and technical debt",
+    "source": "Any codebase",
+    "target": "Documentation + Analysis",
+    "type": "aws-managed",
+    "category": "analysis",
+    "atxCommand": "atx custom def exec -n AWS/comprehensive-codebase-analysis -p . -x -t"
+  },
+  {
+    "id": "AWS/java-performance-optimization",
+    "name": "Java Performance Optimization",
+    "description": "Optimize Java performance by analyzing JFR profiling data to detect CPU/memory hotspots",
+    "source": "Java (with JFR data)",
+    "target": "Optimized Java",
+    "type": "aws-managed",
+    "category": "optimization",
+    "atxCommand": "atx custom def exec -n AWS/java-performance-optimization -p . -x -t"
+  },
+  {
+    "id": "AWS/early-access-log4j-to-slf4j-migration",
+    "name": "Log4j to SLF4J",
+    "description": "Migrates Java applications from Log4j (1.x/2.x) to SLF4J with Logback backend",
+    "source": "Log4j 1.x/2.x",
+    "target": "SLF4J + Logback",
+    "type": "aws-managed",
+    "atxCommand": "atx custom def exec -n AWS/early-access-log4j-to-slf4j-migration -p . -x -t"
+  },
+  {
+    "id": "AWS/angular-version-upgrade",
+    "name": "Angular Version Upgrade",
+    "description": "Transform an older Angular application to a target Angular version",
+    "source": "Angular (older)",
+    "target": "Angular (latest)",
+    "type": "aws-managed",
+    "atxCommand": "atx custom def exec -n AWS/angular-version-upgrade -p . -x -t"
+  },
+  {
+    "id": "AWS/vue.js-version-upgrade",
+    "name": "Vue.js 2 to 3",
+    "description": "Major version upgrade from Vue.js 2 to Vue.js 3",
+    "source": "Vue.js 2",
+    "target": "Vue.js 3",
+    "type": "aws-managed",
+    "atxCommand": "atx custom def exec -n AWS/vue.js-version-upgrade -p . -x -t"
+  }
+]

@@ -128,7 +128,7 @@ Summary only — `steering/tech.md` is authoritative, and dependency versions co
 | AI | AWS Bedrock Claude Sonnet, Knowledge Base RAG |
 | Auth | Cognito (RS256) / Local JWT (HS256) / Disabled |
 | Infrastructure | Docker Compose, ARM64, ECS Fargate |
-| Security | slowapi, python-jose, defusedxml, prompt injection detection |
+| Security | slowapi, pyjwt, defusedxml, prompt injection detection |
 
 ## Build Constraints
 

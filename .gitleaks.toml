@@ -1,84 +1,19 @@
-# gitleaks configuration for the Code Transformation Engine.
+# gitleaks configuration
 #
-# Extends gitleaks' built-in rule set via `useDefault` so we stay current with
-# upstream credential detections rather than maintaining our own copy, adds two
-# custom rules for shapes still missing from the defaults, and allowlists the
-# documented AWS example key.
-#
-# WHY THIS REPO NEEDS IT SPECIFICALLY. Two credential types are first-class
-# INPUTS to the product, which means a real one can reach a developer's working
-# tree in the ordinary course of using it:
-#   - GitHub PATs — `services/github_handler.py` clones private repos with one,
-#     and `utils/encryption.py` encrypts it. A PAT pasted into a test fixture or
-#     a debug print is the realistic accident.
-#   - AWS access keys — every service takes AWS credentials for Bedrock. The
-#     documented path is `.env` (gitignored) and, in production, Secrets Manager;
-#     this config is the backstop for when someone puts one in `.env.example`,
-#     a docker-compose override, or a notebook cell instead.
-#
-# This gates git CONTENT in CI. It is not the same thing as, and does not replace,
-# `utils/guardrails.py`, which redacts at RUNTIME on the way into a prompt.
-#
-# FALSE POSITIVES: the scan keys on real credential SHAPES (AWS/GitHub/GitLab
-# keys, PEM private keys, JWTs, Slack webhooks), not on placeholders, `${VAR}`
-# env references, hashes, UUIDs, or the word "secret". `.env.example` with
-# `AWS_SECRET_ACCESS_KEY=` and no value passes. Ordinary code, docs and prompt
-# templates pass.
-#
-# If you hit a genuine false positive, exempt THAT LINE with a trailing
-# `# gitleaks:allow` annotation, or record its fingerprint in `.gitleaksignore`.
-# Do NOT add a path-level allowlist for `backend/tests/**` or `**/fixtures/**` —
-# that would blind the gate to a real key captured into a fixture, which is the
-# exact accident it exists to catch.
-title = "Code Transformation Engine gitleaks config"
+# Extends the default gitleaks ruleset and adds allowlists for known false
+# positives. See https://github.com/gitleaks/gitleaks for the schema.
 
 [extend]
 useDefault = true
 
-# Custom rules closing gaps still present in gitleaks' default set (verified
-# missing as of gitleaks 8.30.1). These credential shapes are real and worth
-# catching.
-[[rules]]
-id = "aws-secret-access-key"
-description = "AWS secret access key (40-char base64) in an assignment"
-# Anchored to an aws-ish key name so we match the secret in context rather than
-# flagging every 40-char base64 blob (which would false-positive on hashes — and
-# this repo computes plenty of them for analysis IDs and cache keys).
-# The trailing (?:[^A-Za-z0-9/+]|$) requires the 40-char run to END at a
-# non-base64 char OR end-of-line, so a key terminated by ; , ) & etc. (common in
-# code and shell) is still caught, while a 41st base64 char correctly
-# disqualifies it — real AWS secrets are exactly 40.
-regex = '''(?i)aws.{0,20}(?:secret|access).{0,20}['"=:\s]([A-Za-z0-9/+]{40})(?:[^A-Za-z0-9/+]|$)'''
-keywords = ["aws"]
+[allowlist]
+description = "Global allowlisted paths and false positives"
 
-[[rules]]
-id = "github-fine-grained-pat"
-description = "GitHub fine-grained personal access token (github_pat_...)"
-# Structure-accurate to avoid flagging doc placeholders like
-# `github_pat_..._example_placeholder`: the real format is `github_pat_` + 22
-# alphanumerics + `_` + 59+ alphanumerics. Requiring that shape (not a loose
-# [0-9a-zA-Z_]{22,255}) rejects underscore-laden placeholders while catching real
-# tokens. This matters more here than in most repos — the GitHub-analysis UI
-# prompts for a PAT, so `github_pat_` appears legitimately in docs and UI copy.
-#
-# This id matches a built-in rule, so `useDefault` merges the two; `entropy` is
-# set explicitly (rather than inheriting the built-in's 3.0) so a low-entropy
-# placeholder that happens to fit the shape is still rejected and the threshold
-# is visible here instead of implied.
-regex = '''github_pat_[0-9a-zA-Z]{22}_[0-9a-zA-Z]{59,}'''
-entropy = 3.0
-keywords = ["github_pat_"]
-
-# Array-table form ([[allowlists]], plural) rather than the singular [allowlist],
-# which gitleaks has deprecated for removal in v9.
-[[allowlists]]
-description = "Intentional non-secrets."
-
-# Deliberately NOT allowlisted: whole test directories, PEM key material, or
-# whole commits — each of those suppresses real findings too. The only
-# allowlisted value is AWS's own documented example access key: the exact
-# 20-char string, word-bounded so a real key that merely CONTAINS it as a
-# substring is not exempt.
-regexes = [
-  '''\bAKIAIOSFODNN7EXAMPLE\b''',
+# uv.lock is a generated dependency lockfile. Its package integrity hashes
+# (sha256 = "...") and pythonhosted.org URL path segments are base64-like and
+# match the square-access-token / generic patterns, but contain no credentials.
+# The file is produced by `uv lock` and must not be hand-edited.
+paths = [
+    '''backend/uv\.lock''',
+    '''.*/uv\.lock''',
 ]
