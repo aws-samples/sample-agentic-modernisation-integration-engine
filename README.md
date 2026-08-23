@@ -2,6 +2,8 @@
 
 > Autonomous AI agents that analyze, document, and modernize legacy codebases — so engineers can make decisions while agents do the work.
 
+https://github.com/user-attachments/assets/d0b40a0a-1384-43b7-a22e-c17af2fdde35
+
 ## Why
 
 | Problem | What This Does |
