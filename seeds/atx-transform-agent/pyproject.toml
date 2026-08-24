@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "ATX Transform Agent — code transformation with streaming and PR creation."
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi==0.115.5",
+    "fastapi==0.141.1",
     "uvicorn[standard]==0.32.1",
     "pydantic==2.10.3",
     "pydantic-settings==2.6.1",
@@ -12,7 +12,7 @@ dependencies = [
     # Declared explicitly: main.py imports sse_starlette directly. Leaving it
     # transitive means an unpinned version.
     "sse-starlette==2.1.3",
-    "GitPython==3.1.43",
+    "GitPython==3.1.59",
 ]
 
 [dependency-groups]

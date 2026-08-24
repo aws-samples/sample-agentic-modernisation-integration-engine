@@ -1,0 +1,40 @@
+{
+  "prompts": {
+    "documentation-generation": {
+      "id": "documentation-generation",
+      "name": "Documentation Generation",
+      "version": "1.0",
+      "agent": "DocAnalysisAgent",
+      "model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+      "temperature": 0.3,
+      "file": "prompts/documentation-generation.md"
+    },
+    "analysis-summary": {
+      "id": "analysis-summary",
+      "name": "Analysis Summary",
+      "version": "1.0",
+      "agent": "DocAnalysisAgent",
+      "model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+      "temperature": 0.3,
+      "file": "prompts/analysis-summary.md"
+    },
+    "quality-evaluation": {
+      "id": "quality-evaluation",
+      "name": "Quality Evaluation",
+      "version": "1.0",
+      "agent": "LLMJudge",
+      "model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+      "temperature": 0.2,
+      "file": "prompts/quality-evaluation.md"
+    },
+    "kiro-spec-generation": {
+      "id": "kiro-spec-generation",
+      "name": "Kiro Spec Generation",
+      "version": "1.0",
+      "agent": "KiroSpecsAgent",
+      "model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+      "temperature": 0.3,
+      "file": "prompts/kiro-spec-generation.md"
+    }
+  }
+}

@@ -85,8 +85,8 @@ services:
       - path: .env
         required: false
     environment:
-      - AWS_REGION=${AWS_REGION:-us-east-1}
-      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-us.anthropic.claude-sonnet-4-5-20250929-v1:0}
+      # AWS_REGION and BEDROCK_MODEL_ID come from .env (env_file) so it is the
+      # single source of truth and overrides any shell-exported AWS_REGION.
       - AUTH_DISABLED=${AUTH_DISABLED:-true}
       - AGENTCORE_MODE=${AGENTCORE_MODE:-false}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
@@ -132,8 +132,8 @@ services:
       - path: .env
         required: false
     environment:
-      - AWS_REGION=${AWS_REGION:-us-east-1}
-      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-us.anthropic.claude-sonnet-4-5-20250929-v1:0}
+      # AWS_REGION and BEDROCK_MODEL_ID come from .env (env_file) so it is the
+      # single source of truth and overrides any shell-exported AWS_REGION.
       - AGENTCORE_MODE=${AGENTCORE_MODE:-false}
     volumes:
       - atx-analysis-storage:/app/storage
@@ -174,8 +174,8 @@ services:
       - path: .env
         required: false
     environment:
-      - AWS_REGION=${AWS_REGION:-us-east-1}
-      - BEDROCK_MODEL_ID=${BEDROCK_MODEL_ID:-us.anthropic.claude-sonnet-4-5-20250929-v1:0}
+      # AWS_REGION and BEDROCK_MODEL_ID come from .env (env_file) so it is the
+      # single source of truth and overrides any shell-exported AWS_REGION.
       - AGENTCORE_MODE=${AGENTCORE_MODE:-false}
     volumes:
       - atx-java-transform-storage:/app/storage

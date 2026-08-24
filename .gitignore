@@ -41,3 +41,10 @@ shared_repos/
 # AWS / secrets
 *.pem
 credentials
+
+# Hypothesis test-data cache (regenerated on demand)
+.hypothesis/
+
+# Playwright test artifacts
+frontend/test-results/
+frontend/playwright-report/
