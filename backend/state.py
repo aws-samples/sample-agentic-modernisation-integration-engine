@@ -26,6 +26,11 @@ class AppState:
         self._initialized = True
         self.storage_manager: Any = None
         self.progress_tracker: Any = None
+        # Database discovery reports live in their own StorageManager so they never appear in
+        # the code-analysis listing (GET /api/analyses).
+        self.db_discovery_storage: Any = None
+        self.db_conversion_storage: Any = None
+        self.db_validation_storage: Any = None
         self.analysis_count: int = 0
 
     @classmethod

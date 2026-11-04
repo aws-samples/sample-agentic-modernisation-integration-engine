@@ -20,6 +20,12 @@ from models import HealthResponse
 from routes.ai_streaming import router as ai_streaming_router
 from routes.analysis import router as analysis_router
 from routes.aux import router as aux_router
+from routes.db_conversion import DB_CONVERSION_STORAGE_PATH
+from routes.db_conversion import router as db_conversion_router
+from routes.db_discovery import DB_DISCOVERY_STORAGE_PATH
+from routes.db_validation import DB_VALIDATION_STORAGE_PATH
+from routes.db_validation import router as db_validation_router
+from routes.db_discovery import router as db_discovery_router
 from routes.security_fix import router as security_fix_router
 from utils.progress_tracker import ProgressTracker
 from utils.storage_manager import StorageManager
@@ -37,6 +43,19 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
 
     app_state.storage_manager = StorageManager()
     app_state.progress_tracker = ProgressTracker()
+    app_state.db_discovery_storage = StorageManager(base_path=DB_DISCOVERY_STORAGE_PATH)
+    app_state.db_conversion_storage = StorageManager(
+        base_path=DB_CONVERSION_STORAGE_PATH
+    )
+    app_state.db_validation_storage = StorageManager(
+        base_path=DB_VALIDATION_STORAGE_PATH
+    )
+    # Conversions run in this process; any left active by a previous process are dead.
+    from services.db_conversion.conversion_store import ConversionStore
+
+    recovered = ConversionStore(app_state.db_conversion_storage).recover_interrupted()
+    if recovered:
+        logger.warning("Marked %d interrupted conversions as failed", recovered)
     yield
 
 
@@ -109,6 +128,9 @@ async def health_check() -> HealthResponse:
 
 app.include_router(auth_router)
 app.include_router(analysis_router)
+app.include_router(db_discovery_router)
+app.include_router(db_conversion_router)
+app.include_router(db_validation_router)
 app.include_router(ai_streaming_router)
 app.include_router(aux_router)
 app.include_router(security_fix_router)

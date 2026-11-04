@@ -25,6 +25,8 @@ import {
   ExpandMore,
   Logout as LogoutIcon,
   Person as PersonIcon,
+  Storage as StorageIcon,
+  TableChart as TableChartIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -42,6 +44,7 @@ export function Navigation({ selectedNavItem, analysisCount, onNavItemSelect, on
   const { user, logout } = useAuth();
   const [codeAnalyseOpen, setCodeAnalyseOpen] = useState(true);
   const [awsTransformOpen, setAwsTransformOpen] = useState(true);
+  const [databaseOpen, setDatabaseOpen] = useState(true);
 
   const handleNavClick = (item: string, path: string) => {
     onNavItemSelect(item);
@@ -149,6 +152,43 @@ export function Navigation({ selectedNavItem, analysisCount, onNavItemSelect, on
                 <HistoryIcon fontSize="small" />
               </ListItemIcon>
               <ListItemText primary="Previous Analyses" sx={{ '& .MuiListItemText-primary': { color: 'white' } }} />
+            </ListItemButton>
+          </List>
+        </Collapse>
+
+        {/* Database Discovery Section */}
+        <ListItemButton
+          onClick={() => setDatabaseOpen(!databaseOpen)}
+          sx={{
+            borderRadius: 1,
+            mb: 0.5,
+            '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' },
+          }}
+        >
+          <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
+            <StorageIcon />
+          </ListItemIcon>
+          <ListItemText primary="Database Discovery" sx={{ '& .MuiListItemText-primary': { color: 'white' } }} />
+          {databaseOpen ? <ExpandLess /> : <ExpandMore />}
+        </ListItemButton>
+
+        <Collapse in={databaseOpen} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding>
+            <ListItemButton
+              selected={selectedNavItem === 'database-discovery'}
+              onClick={() => handleNavClick('database-discovery', '/database-discovery')}
+              sx={{
+                pl: 4,
+                borderRadius: 1,
+                mb: 0.5,
+                '&.Mui-selected': { bgcolor: 'rgba(255,153,0,0.15)' },
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.08)' },
+              }}
+            >
+              <ListItemIcon sx={{ color: 'inherit', minWidth: 40 }}>
+                <TableChartIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="SQL Server → Aurora MySQL" sx={{ '& .MuiListItemText-primary': { color: 'white' } }} />
             </ListItemButton>
           </List>
         </Collapse>

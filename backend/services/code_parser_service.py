@@ -36,6 +36,7 @@ from utils.bedrock import (
     bedrock_failure_for,
     bedrock_runtime_client,
     invoke_with_retry,
+    response_text,
 )
 
 logger = logging.getLogger(__name__)
@@ -521,6 +522,6 @@ class CodeParserService:
                 accept="application/json",
             )
             response_body = json.loads(response["body"].read())
-            return response_body.get("content", [{}])[0].get("text", "")
+            return response_text(response_body)
 
         return invoke_with_retry(_call, description="text generation")

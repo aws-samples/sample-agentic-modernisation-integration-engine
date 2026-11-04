@@ -37,6 +37,7 @@ The platform implements an Agentic Software Development Lifecycle where AI agent
 | Quality Evaluation | Verification | LLMJudge (Strands, 5-dimension scoring) |
 | Kiro Spec Generation | Specification | KiroSpecsAgent (Bedrock only — the Kiro CLI leg lives in a service no task produces) |
 | ATX Code Assessment | Assessment | ATX Analysis Agent (CLI streaming) |
+| SQL Server → Aurora MySQL Discovery | Assessment | Database Discovery (deterministic T-SQL + C# embedded-SQL scan; `.kiro/specs/sqlserver-to-aurora-mysql/`) |
 | Java Modernization | Transformation | ATX Transform Agent (diff + download; PR creation is an API-only capability with no UI caller) |
 
 Ant-to-Maven Migration, To-Be Architecture Design (Design Doc Agent), EKS Workload Delivery

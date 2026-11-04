@@ -18,6 +18,18 @@ All list endpoints wrap their data in a named envelope key:
 | `GET /api/transformations/definitions` | `definitions` | `{"definitions": [...]}` |
 | `GET /api/analysis/{id}/summary` | _(top-level object)_ | `{"analysis_id": "...", "file_stats": [...], ...}` |
 | `GET /api/analysis/{id}/documentation` | _(top-level)_ | `{"documentation": "...", "ai_enrichment_status": "..."}` |
+| `POST /api/db-discovery/upload` | _(top-level)_ | `{"discovery_id": "...", "status": "processing", "message": "..."}` |
+| `POST /api/db-discovery/github` | _(top-level)_ | body `{repo_url, branch, pat_token, subpath}` → same as upload |
+| `GET /api/db-discovery/{id}/status` | _(top-level)_ | `{"discovery_id", "status", "progress", "current_step", "message"}` |
+| `GET /api/db-discovery/{id}` | _(top-level object)_ | `{"discovery_id", "summary", "objects", "findings", "type_mappings", "application", ...}` |
+| `GET /api/db-discovery/{id}/report.md` | _(text/markdown attachment)_ | Markdown assessment report |
+| `GET /api/db-discoveries` | `discoveries` | `{"discoveries": [...]}` |
+| `GET /api/db-discovery/rules` | `rules` | `{"rules": [...]}` |
+| `DELETE /api/db-discovery/{id}` | _(top-level)_ | `{"detail": "Deleted"}` |
+
+Database discovery reports are stored under `/app/temp/db_discoveries` (override with
+`DB_DISCOVERY_STORAGE_PATH`), separately from code analyses, so they never appear in
+`GET /api/analyses`. Report schema: `.kiro/specs/sqlserver-to-aurora-mysql/design.md`.
 
 ## Error Format
 
@@ -98,7 +110,8 @@ Analysis IDs follow the pattern:
 {source}_{YYYYMMDD_HHMMSS}
 ```
 
-- **source**: `upload` or `github`
+- **source**: `upload` or `github` (code analysis); `dbupload` or `dbgithub` (database discovery,
+  which appends `-2`, `-3`, … when two runs start in the same second)
 - **timestamp**: UTC date and time of creation
 
 Examples:

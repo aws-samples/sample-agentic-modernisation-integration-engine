@@ -18,6 +18,7 @@ from utils.bedrock import (
     bedrock_failure_for,
     bedrock_runtime_client,
     invoke_with_retry,
+    response_text,
 )
 
 logger = logging.getLogger(__name__)
@@ -98,7 +99,7 @@ class LLMJudge:
                 body=body,
             )
             result = json.loads(response["body"].read())
-            return result["content"][0]["text"]
+            return response_text(result)
 
         return invoke_with_retry(_call, description="quality evaluation")
 

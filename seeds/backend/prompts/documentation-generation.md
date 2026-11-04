@@ -1,7 +1,7 @@
 ---
 agent: DocAnalysisAgent
 version: "2.0"
-model: us.anthropic.claude-sonnet-4-5-20250929-v1:0
+model: us.anthropic.claude-opus-5-5
 temperature: 0.3
 ---
 # Documentation Generation

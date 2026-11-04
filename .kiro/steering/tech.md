@@ -19,6 +19,7 @@
 | AI agents | Strands Agents 1.0+ | Autonomous agent orchestration with tools |
 | LLM access | boto3 (Bedrock Runtime) | AWS Bedrock Claude invocation |
 | Code parsing | Tree-sitter | AST extraction (Java, Python, JS, C#, C) |
+| SQL parsing | sqlglot (T-SQL dialect) | Parse-coverage check and table references for Database Discovery |
 | Git operations | GitPython | Repository clone, branch management |
 | Validation | Pydantic 2.5+ | Request/response schema validation |
 | Auth | pyjwt, passlib | JWT (HS256/RS256), password hashing |
@@ -159,7 +160,7 @@ cd frontend && npm run lint && npm run test    # Frontend: tsc --noEmit + vitest
 | `AWS_ACCESS_KEY_ID` | AWS credentials (local dev only; AgentCore uses execution role) |
 | `AWS_SECRET_ACCESS_KEY` | AWS credentials |
 | `AWS_REGION` | Region (default: `us-east-1`) |
-| `BEDROCK_MODEL_ID` | Model ID (default: `us.anthropic.claude-sonnet-4-5-20250929-v1:0`) |
+| `BEDROCK_MODEL_ID` | Model ID (default: `us.anthropic.claude-opus-5-5`) |
 
 ### Authentication
 | Variable | Description |
@@ -180,7 +181,7 @@ cd frontend && npm run lint && npm run test    # Frontend: tsc --noEmit + vitest
 
 | Model | Use Case | Config |
 |-------|----------|--------|
-| Claude Sonnet 4.5 | Documentation, architecture, transformation planning | `BEDROCK_MODEL_ID` |
+| Claude Opus 5.5 | Documentation, architecture, transformation planning | `BEDROCK_MODEL_ID` |
 | Claude Sonnet 4 | Fallback, cost-sensitive operations | Configurable per-agent |
 | Bedrock Knowledge Base | RAG for tech standards — **read by no service this build produces**; the agent that consumed it is produced by no task | `BEDROCK_KB_ID` |
 | Bedrock Guardrails | Content filtering, PII detection | `BEDROCK_GUARDRAIL_ID` |

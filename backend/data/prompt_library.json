@@ -5,7 +5,7 @@
       "name": "Documentation Generation",
       "version": "1.0",
       "agent": "DocAnalysisAgent",
-      "model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+      "model": "us.anthropic.claude-opus-5-5",
       "temperature": 0.3,
       "file": "prompts/documentation-generation.md"
     },
@@ -14,7 +14,7 @@
       "name": "Analysis Summary",
       "version": "1.0",
       "agent": "DocAnalysisAgent",
-      "model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+      "model": "us.anthropic.claude-opus-5-5",
       "temperature": 0.3,
       "file": "prompts/analysis-summary.md"
     },
@@ -23,7 +23,7 @@
       "name": "Quality Evaluation",
       "version": "1.0",
       "agent": "LLMJudge",
-      "model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+      "model": "us.anthropic.claude-opus-5-5",
       "temperature": 0.2,
       "file": "prompts/quality-evaluation.md"
     },
@@ -32,9 +32,36 @@
       "name": "Kiro Spec Generation",
       "version": "1.0",
       "agent": "KiroSpecsAgent",
-      "model": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+      "model": "us.anthropic.claude-opus-5-5",
       "temperature": 0.3,
       "file": "prompts/kiro-spec-generation.md"
+    },
+    "sql-conversion-maker": {
+      "id": "sql-conversion-maker",
+      "name": "SQL Conversion Maker",
+      "version": "1.0",
+      "agent": "SqlConversionAgent",
+      "model": "us.anthropic.claude-opus-5-5",
+      "temperature": 0.2,
+      "file": "prompts/sql-conversion-maker.md"
+    },
+    "sql-conversion-checker": {
+      "id": "sql-conversion-checker",
+      "name": "SQL Conversion Checker",
+      "version": "1.0",
+      "agent": "SqlConversionAgent",
+      "model": "us.anthropic.claude-opus-5-5",
+      "temperature": 0.0,
+      "file": "prompts/sql-conversion-checker.md"
+    },
+    "sql-conversion-tests": {
+      "id": "sql-conversion-tests",
+      "name": "SQL Conversion Test Designer",
+      "version": "1.0",
+      "agent": "SqlConversionAgent",
+      "model": "us.anthropic.claude-opus-5-5",
+      "temperature": 0.2,
+      "file": "prompts/sql-conversion-tests.md"
     }
   }
 }

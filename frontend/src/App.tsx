@@ -14,6 +14,9 @@ import { AtxAnalysisPage } from './pages/AtxAnalysisPage';
 import { AtxJavaTransformPage } from './pages/AtxJavaTransformPage';
 import { AtxTransformPage } from './pages/AtxTransformPage';
 import { TransformationManagement } from './pages/TransformationManagement';
+import { DatabaseDiscoveryPage } from './pages/DatabaseDiscoveryPage';
+import { DatabaseDiscoveryResults } from './pages/DatabaseDiscoveryResults';
+import { DatabaseMigrationPage } from './pages/DatabaseMigrationPage';
 import type { AnalysisResult } from './types';
 
 const theme = createTheme({
@@ -167,6 +170,9 @@ function AppContent() {
                   <Route path="/atx-transform" element={<AtxJavaTransformPage />} />
                   <Route path="/transform-results/:id" element={<AtxTransformPage />} />
                   <Route path="/transformations" element={<TransformationManagement />} />
+                  <Route path="/database-discovery" element={<DatabaseDiscoveryPage />} />
+                  <Route path="/database-discovery/:id" element={<DatabaseDiscoveryResults />} />
+                  <Route path="/database-discovery/:id/migration" element={<DatabaseMigrationPage />} />
                 </Routes>
               </Box>
             </Box>

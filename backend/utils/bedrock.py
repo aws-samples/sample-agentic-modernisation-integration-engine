@@ -392,3 +392,19 @@ def invoke_with_retry(
             unavailable=False,
         )
     )
+
+
+def response_text(response_body: dict) -> str:
+    """Join the ``text`` blocks of an Anthropic Messages response.
+
+    Newer Claude models (for example Opus 5.5) can put a ``thinking`` block before
+    the answer, so ``content[0]`` is not necessarily the text. Reading only the
+    first block returned an empty string while the call itself succeeded, which
+    the enrichment pipeline then recorded as ``completed`` with no output.
+    """
+    blocks = response_body.get("content") or []
+    return "".join(
+        block.get("text", "")
+        for block in blocks
+        if isinstance(block, dict) and block.get("type", "text") == "text"
+    )

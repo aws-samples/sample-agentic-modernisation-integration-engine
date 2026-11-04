@@ -13,13 +13,34 @@ function stepToIndex(currentStep: string): number {
   return 0;
 }
 
+/** The fields the tracker reads from a status poll. */
+export interface TrackedStatus {
+  status: string;
+  progress?: number;
+  current_step?: string;
+  message?: string;
+}
+
 interface ProgressTrackerProps {
   analysisId: string;
   onComplete: (analysisId: string) => void;
   onFailed: (analysisId: string, message: string) => void;
+  /** Status source; defaults to the code-analysis status endpoint. */
+  fetchStatus?: (id: string) => Promise<TrackedStatus>;
+  /** Step labels; defaults to the code-analysis pipeline steps. */
+  steps?: string[];
+  /** Maps the backend's current_step to an index into `steps`. */
+  stepIndexFor?: (currentStep: string) => number;
 }
 
-export function ProgressTracker({ analysisId, onComplete, onFailed }: ProgressTrackerProps) {
+export function ProgressTracker({
+  analysisId,
+  onComplete,
+  onFailed,
+  fetchStatus = getAnalysisStatus,
+  steps = STEPS,
+  stepIndexFor = stepToIndex,
+}: ProgressTrackerProps) {
   const [progress, setProgress] = useState(0);
   const [activeStep, setActiveStep] = useState(0);
   const [message, setMessage] = useState('Starting analysis...');
@@ -32,13 +53,13 @@ export function ProgressTracker({ analysisId, onComplete, onFailed }: ProgressTr
 
     const poll = async () => {
       try {
-        const data = await getAnalysisStatus(analysisId);
+        const data = await fetchStatus(analysisId);
         if (!mountedRef.current) return;
 
         setProgress(data.progress ?? 0);
         setMessage(data.message ?? data.current_step ?? '');
         setStatus(data.status);
-        setActiveStep(stepToIndex(data.current_step ?? ''));
+        setActiveStep(stepIndexFor(data.current_step ?? ''));
 
         if (data.status === 'completed') {
           if (intervalRef.current) clearInterval(intervalRef.current);
@@ -59,18 +80,18 @@ export function ProgressTracker({ analysisId, onComplete, onFailed }: ProgressTr
       mountedRef.current = false;
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [analysisId, onComplete, onFailed]);
+  }, [analysisId, onComplete, onFailed, fetchStatus, stepIndexFor]);
 
   const isComplete = status === 'completed';
   const isFailed = status === 'failed' || status === 'error';
 
   return (
     <Box sx={{ width: '100%', py: 2 }}>
-      <Stepper activeStep={isComplete ? STEPS.length : activeStep} alternativeLabel>
-        {STEPS.map((label) => (
+      <Stepper activeStep={isComplete ? steps.length : activeStep} alternativeLabel>
+        {steps.map((label) => (
           <Step key={label} completed={isComplete}>
             <StepLabel
-              error={isFailed && label === STEPS[activeStep]}
+              error={isFailed && label === steps[activeStep]}
             >
               {label}
             </StepLabel>

@@ -11,6 +11,17 @@ import type {
   TransformationDefinition,
   SSEEvent,
 } from '../types';
+import type {
+  BehaviourCase,
+  ConversionRecord,
+  DiscoveryListItem,
+  DiscoveryReport,
+  DiscoveryStatus,
+  ProcedureTestInput,
+  SandboxStatus,
+  ValidationRun,
+  ValidationStatus,
+} from '../types/dbDiscovery';
 
 // ─── Axios Instances ──────────────────────────────────────────────────────────
 // All base URLs use relative paths (Vite proxy or Nginx handles routing)
@@ -313,6 +324,167 @@ export async function updatePrompt(id: string, data: unknown): Promise<unknown> 
 export async function getStorageStats(): Promise<unknown> {
   const response = await backendApi.get('/storage/stats');
   return response.data;
+}
+
+// ─── Database Discovery (SQL Server → Aurora MySQL) ──────────────────────────
+
+export async function startDbDiscoveryUpload(file: File): Promise<{ discovery_id: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await backendApi.post('/db-discovery/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+}
+
+export async function startDbDiscoveryGithub(
+  repoUrl: string,
+  branch: string,
+  subpath: string,
+  patToken?: string
+): Promise<{ discovery_id: string }> {
+  const response = await backendApi.post('/db-discovery/github', {
+    repo_url: repoUrl,
+    branch,
+    subpath,
+    pat_token: patToken ?? '',
+  });
+  return response.data;
+}
+
+export async function getDbDiscoveryStatus(id: string): Promise<DiscoveryStatus> {
+  const response = await backendApi.get(`/db-discovery/${encodeURIComponent(id)}/status`);
+  return response.data;
+}
+
+export async function getDbDiscovery(id: string): Promise<DiscoveryReport> {
+  const response = await backendApi.get(`/db-discovery/${encodeURIComponent(id)}`);
+  return response.data;
+}
+
+export async function getDbDiscoveries(): Promise<DiscoveryListItem[]> {
+  const response = await backendApi.get('/db-discoveries');
+  return response.data.discoveries ?? [];
+}
+
+export async function deleteDbDiscovery(id: string): Promise<void> {
+  await backendApi.delete(`/db-discovery/${encodeURIComponent(id)}`);
+}
+
+/** Fetch the Markdown report through the JWT-bearing client and hand it to the browser. */
+export async function downloadDbDiscoveryMarkdown(id: string): Promise<void> {
+  const response = await backendApi.get(`/db-discovery/${encodeURIComponent(id)}/report.md`, {
+    responseType: 'blob',
+  });
+  saveBlob(response.data as Blob, `${id}.md`);
+}
+
+async function downloadBackendFile(path: string, filename: string): Promise<void> {
+  try {
+    const response = await backendApi.get(path, { responseType: 'blob' });
+    saveBlob(response.data as Blob, filename);
+  } catch (err) {
+    throw new Error(await extractBlobErrorDetail(err));
+  }
+}
+
+const enc = encodeURIComponent;
+
+export function downloadDbSchemaSql(id: string): Promise<void> {
+  return downloadBackendFile(`/db-discovery/${enc(id)}/schema.sql`, `${id}-schema.sql`);
+}
+
+export function downloadDbConversionsSql(id: string): Promise<void> {
+  return downloadBackendFile(`/db-discovery/${enc(id)}/conversions.sql`, `${id}-conversions.sql`);
+}
+
+export function downloadDbDmsArtifacts(id: string): Promise<void> {
+  return downloadBackendFile(`/db-discovery/${enc(id)}/dms-artifacts.zip`, `${id}-dms-artifacts.zip`);
+}
+
+export async function getDbConversions(id: string): Promise<{ conversions: ConversionRecord[]; sandbox: SandboxStatus }> {
+  const response = await backendApi.get(`/db-discovery/${enc(id)}/conversions`);
+  return { conversions: response.data.conversions ?? [], sandbox: response.data.sandbox };
+}
+
+export async function startDbConversions(
+  id: string,
+  objectIds: string[]
+): Promise<{ queued: ConversionRecord[]; skipped: { object_id: string; reason: string }[] }> {
+  const response = await backendApi.post(`/db-discovery/${enc(id)}/conversions`, { object_ids: objectIds });
+  return response.data;
+}
+
+export async function reviewDbConversion(
+  id: string,
+  objectId: string,
+  action: 'approve' | 'reject' | 'edit',
+  sql = '',
+  note = ''
+): Promise<ConversionRecord> {
+  const response = await backendApi.post(`/db-discovery/${enc(id)}/conversions/${enc(objectId)}/review`, {
+    action,
+    sql,
+    note,
+  });
+  return response.data;
+}
+
+export async function setDbConversionTests(
+  id: string,
+  objectId: string,
+  tests: BehaviourCase[]
+): Promise<ConversionRecord> {
+  const response = await backendApi.put(`/db-discovery/${enc(id)}/conversions/${enc(objectId)}/tests`, { tests });
+  return response.data;
+}
+
+export async function getDbValidationStatus(): Promise<ValidationStatus> {
+  const response = await backendApi.get('/db-validation/status');
+  return response.data;
+}
+
+export async function getDbValidationRuns(): Promise<ValidationRun[]> {
+  const response = await backendApi.get('/db-validation/runs');
+  return response.data.runs ?? [];
+}
+
+export async function getDbValidationRun(runId: string): Promise<ValidationRun> {
+  const response = await backendApi.get(`/db-validation/runs/${enc(runId)}`);
+  return response.data;
+}
+
+export async function startDbValidation(
+  discoveryId: string,
+  tables: string[],
+  procedureTests: ProcedureTestInput[]
+): Promise<{ run_id: string }> {
+  const response = await backendApi.post('/db-validation/runs', {
+    discovery_id: discoveryId,
+    tables,
+    procedure_tests: procedureTests,
+  });
+  return response.data;
+}
+
+export async function startDbCopy(discoveryId: string, tables: string[], maxRows: number): Promise<{ run_id: string }> {
+  const response = await backendApi.post('/db-validation/copy', {
+    discovery_id: discoveryId,
+    tables,
+    max_rows: maxRows,
+  });
+  return response.data;
+}
+
+export function saveBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 // ─── ATX Analysis Agent Methods ───────────────────────────────────────────────

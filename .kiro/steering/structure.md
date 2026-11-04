@@ -4,7 +4,8 @@
 
 This is the layout a build produces — the whole of it. Every task in `tasks.md` is required, so there
 is no second tier of paths that appear only under some conditions: a path is either below or it is not
-created. When this file and `tasks.md` disagree on a path, `tasks.md` wins.
+created. When this file and `tasks.md` disagree on a path, `tasks.md` wins. Paths marked
+**(db-discovery)** are produced by `.kiro/specs/sqlserver-to-aurora-mysql/tasks.md`.
 
 ```
 code-transformation-engine/
@@ -19,12 +20,16 @@ code-transformation-engine/
 │   │   ├── dev-env-setup.md        # Version pins (manual: #dev-env-setup)
 │   │   └── task-execution.md       # Sequential execution rules (one task at a time)
 │   └── specs/
-│       └── code-insights-platform/ # Main platform specification
-│           ├── requirements.md     # 20 functional requirements
-│           ├── design.md           # Architecture and design
-│           ├── tasks.md            # Sequential implementation task list (authoritative)
-│           ├── tasks-agentcore.md  # AgentCore migration tasks (not part of this build)
-│           └── agentcore-readiness.md  # AgentCore migration guide
+│       ├── code-insights-platform/ # Main platform specification
+│       │   ├── requirements.md     # 20 functional requirements
+│       │   ├── design.md           # Architecture and design
+│       │   ├── tasks.md            # Sequential implementation task list (authoritative)
+│       │   ├── tasks-agentcore.md  # AgentCore migration tasks (not part of this build)
+│       │   └── agentcore-readiness.md  # AgentCore migration guide
+│       └── sqlserver-to-aurora-mysql/ # (db-discovery) SQL Server → Aurora MySQL pathway, phase 1
+│           ├── requirements.md
+│           ├── design.md
+│           └── tasks.md
 │
 ├── backend/                        # Main API (FastAPI, port 8000)
 │   ├── main.py                     # FastAPI app, middleware, router registration
@@ -36,6 +41,7 @@ code-transformation-engine/
 │   │   ├── analysis.py            # Upload/GitHub analysis, status, results
 │   │   ├── ai_streaming.py        # SSE endpoints (documentation, judge, specs)
 │   │   ├── aux.py                 # Health, config, auxiliary endpoints
+│   │   ├── db_discovery.py        # (db-discovery) /api/db-discovery/* and /api/db-discoveries
 │   │   └── security_fix.py        # Router skeleton (Task 2); no task populates it
 │   ├── agents/                    # Strands AI agents (Software 3.0 core)
 │   │   ├── __init__.py
@@ -71,7 +77,12 @@ code-transformation-engine/
 │   │   ├── version_analyzer.py   # Version extraction
 │   │   ├── diagram_generator.py  # Mermaid diagram orchestrator
 │   │   ├── code_parser_service.py # ZIP/file analysis orchestrator
-│   │   └── prompt_loader.py      # Prompt template loading from prompts/
+│   │   ├── prompt_loader.py      # Prompt template loading from prompts/
+│   │   └── db_discovery/          # (db-discovery) deterministic SQL Server → MySQL assessment
+│   │       ├── tsql_scanner.py        # masking, GO batches, object inventory, columns, sqlglot
+│   │       ├── mysql_compat_rules.py  # MySQL 8.0 incompatibility rule catalogue
+│   │       ├── csharp_sql_scanner.py  # embedded SQL, SqlClient/EF/Dapper, conn strings, packages
+│   │       └── discovery_service.py   # orchestration, effort scoring, Markdown report
 │   ├── utils/
 │   │   ├── __init__.py
 │   │   ├── bedrock.py            # Bedrock client factory + invocation wrapper
@@ -135,6 +146,9 @@ code-transformation-engine/
 │   ├── Dockerfile                 # Seeded
 │   └── nginx.conf                 # Reverse proxy routing (seeded)
 │
+├── samples/
+│   └── wwi-legacy-dotnet/         # (db-discovery) .NET Framework 4.8 fixture calling WideWorldImporters
+│                                  # + build-demo-zip.sh (downloads WWI; WWI is never committed)
 ├── seeds/                         # Verbatim infra/config copied into place by Task 1
 ├── docker-compose.yml             # Declares exactly the 4 services this layout produces
 ├── .env.example                   # All environment variables

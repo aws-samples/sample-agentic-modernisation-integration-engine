@@ -48,3 +48,6 @@ credentials
 # Playwright test artifacts
 frontend/test-results/
 frontend/playwright-report/
+
+# Throwaway scripts (see .kiro/steering/dev-env.md)
+temp_scripts/

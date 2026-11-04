@@ -134,6 +134,10 @@ pyjwt==2.13.0
     # via
     #   code-transformation-engine-backend
     #   mcp
+pymssql==2.4.6
+    # via code-transformation-engine-backend
+pymysql==1.2.3
+    # via code-transformation-engine-backend
 python-dateutil==2.9.0.post0
     # via botocore
 python-dotenv==1.2.2
@@ -168,6 +172,8 @@ slowapi==0.1.9
     # via code-transformation-engine-backend
 smmap==5.0.3
     # via gitdb
+sqlglot==27.29.0
+    # via code-transformation-engine-backend
 sse-starlette==2.1.3
     # via
     #   code-transformation-engine-backend

@@ -91,6 +91,11 @@ services:
       - AGENTCORE_MODE=${AGENTCORE_MODE:-false}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000}
       - KIRO_CLI_AGENT_URL=http://kiro-cli-agent:8007
+      # MySQL 8.0 sandbox for compiling converted code (service `mysql` below).
+      - MYSQL_SANDBOX_HOST=mysql
+      - MYSQL_SANDBOX_PORT=3306
+      - MYSQL_SANDBOX_USER=root
+      - MYSQL_SANDBOX_PASSWORD=${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
     volumes:
       - backend-data:/app/temp
       - shared-repos:/app/shared_repos
@@ -115,6 +120,37 @@ services:
   # --------------------------------------------------------------------------
   # ATX Analysis Agent — ATX CLI code assessment with SSE streaming.
   # --------------------------------------------------------------------------
+  # --------------------------------------------------------------------------
+  # MySQL 8.0 sandbox — the Aurora MySQL 3 stand-in that the conversion Checker
+  # compiles converted procedures, functions, views and triggers against, and
+  # the default validation target. Holds only generated schema and test data.
+  # --------------------------------------------------------------------------
+  mysql:
+    image: mysql:8.0
+    platform: linux/arm64
+    ports:
+      - "127.0.0.1:3307:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+    command: ["--log-bin-trust-function-creators=1", "--sql-mode=STRICT_TRANS_TABLES,NO_ENGINE_SUBSTITUTION"]
+    volumes:
+      - mysql-sandbox-data:/var/lib/mysql
+    networks:
+      - backend-net
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p\"$$MYSQL_ROOT_PASSWORD\" --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    restart: unless-stopped
   atx-analysis-agent:
     build:
       context: ./atx-analysis-agent
@@ -201,6 +237,7 @@ volumes:
   atx-analysis-storage:         # atx-analysis:/app/storage — conversation data
   atx-java-transform-storage:   # atx-transform:/app/storage — transform results
   transformation-definitions:   # backend (rw) + atx-transform (ro) — ATX defs
+  mysql-sandbox-data:           # mysql:/var/lib/mysql — conversion sandbox
 
 # ----------------------------------------------------------------------------
 # Networks — frontend isolated on frontend-net; all HTTP on backend-net.

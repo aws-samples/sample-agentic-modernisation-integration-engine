@@ -81,7 +81,7 @@ def _read_timeout() -> ReadTimeoutError:
     return ReadTimeoutError(
         endpoint_url=(
             "https://bedrock-runtime.us-east-1.amazonaws.com/model/"
-            "us.anthropic.claude-sonnet-4-5-20250929-v1%3A0/invoke"
+            "us.anthropic.claude-opus-5-5/invoke"
         )
     )
 

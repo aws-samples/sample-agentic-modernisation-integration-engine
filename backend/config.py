@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: str = ""
 
     # Bedrock
-    BEDROCK_MODEL_ID: str = "us.anthropic.claude-sonnet-4-5-20250929-v1:0"
+    BEDROCK_MODEL_ID: str = "us.anthropic.claude-opus-5-5"
 
     # Bedrock call budget. botocore defaults the read timeout to 60s, but a
     # 4096-token documentation generation against a real analysis context
@@ -57,6 +57,27 @@ class Settings(BaseSettings):
     # recommendations can cite real advisories. Set false for air-gapped environments;
     # recommendations then come from the curated rules only.
     VULN_SCAN_ENABLED: bool = True
+
+    # Database Discovery phase 2 — MySQL 8.0 sandbox (compose service `mysql`).
+    MYSQL_SANDBOX_HOST: str = ""
+    MYSQL_SANDBOX_PORT: int = 3306
+    MYSQL_SANDBOX_USER: str = "root"
+    MYSQL_SANDBOX_PASSWORD: str = ""
+    # Maker/Checker attempts per converted object. The Maker and the model
+    # checker both use BEDROCK_MODEL_ID.
+    CONVERSION_MAX_ATTEMPTS: int = 3
+    # Validation harness. Source is SQL Server; target defaults to the sandbox.
+    VALIDATION_SQLSERVER_HOST: str = ""
+    VALIDATION_SQLSERVER_PORT: int = 1433
+    VALIDATION_SQLSERVER_USER: str = ""
+    VALIDATION_SQLSERVER_PASSWORD: str = ""
+    VALIDATION_SQLSERVER_DATABASE: str = "WideWorldImporters"
+    VALIDATION_MYSQL_HOST: str = ""
+    VALIDATION_MYSQL_PORT: int | None = None
+    VALIDATION_MYSQL_USER: str = ""
+    VALIDATION_MYSQL_PASSWORD: str = ""
+    # Test-only bulk row copy from source to target.
+    VALIDATION_ALLOW_COPY: bool = False
 
     # CORS
     CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"

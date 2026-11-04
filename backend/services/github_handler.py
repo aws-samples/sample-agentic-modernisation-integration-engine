@@ -48,6 +48,7 @@ class GitHubHandler:
         branch: str = "main",
         pat_token: str = "",
         timeout: int = _DEFAULT_TIMEOUT,
+        sparse_paths: list[str] | None = None,
     ) -> str:
         """Clone a repository and return the local path.
 
@@ -56,6 +57,9 @@ class GitHubHandler:
             branch: Branch to clone.
             pat_token: Personal access token for private repos.
             timeout: Clone timeout in seconds.
+            sparse_paths: When given, only these repository paths are checked out
+                (blobless partial clone + sparse checkout), so a sub-folder of a large
+                repository can be analyzed without downloading all of it.
 
         Returns:
             Path to the cloned repository.
@@ -70,13 +74,26 @@ class GitHubHandler:
         dest_dir = self._make_dest_dir(repo_url)
 
         try:
-            git.Repo.clone_from(
-                clone_url,
-                dest_dir,
-                branch=branch,
-                depth=1,
-                kill_after_timeout=timeout,
-            )
+            if sparse_paths:
+                repo = git.Repo.clone_from(
+                    clone_url,
+                    dest_dir,
+                    branch=branch,
+                    depth=1,
+                    multi_options=["--filter=blob:none", "--sparse"],
+                    kill_after_timeout=timeout,
+                )
+                repo.git.sparse_checkout(
+                    "set", *sparse_paths, kill_after_timeout=timeout
+                )
+            else:
+                git.Repo.clone_from(
+                    clone_url,
+                    dest_dir,
+                    branch=branch,
+                    depth=1,
+                    kill_after_timeout=timeout,
+                )
             logger.info("Cloned %s (branch: %s) to %s", repo_url, branch, dest_dir)
             return dest_dir
         except git.GitCommandError as exc:
