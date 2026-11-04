@@ -15,12 +15,14 @@ https://github.com/user-attachments/assets/d0b40a0a-1384-43b7-a22e-c17af2fdde35
 | Understanding a legacy codebase takes weeks of reading | Parses 6 languages, maps dependencies, generates architecture diagrams — in minutes |
 | Documentation is always outdated or missing | AI generates docs grounded in actual parsed code structure, scored for quality |
 | Java modernization is manual and error-prone | Runs AWS ATX transformations with real-time streaming, diff preview, and one-click PR |
+| SQL Server → Aurora MySQL needs the procedures, functions and triggers rewritten, and DMS Schema Conversion has no generative AI for this pair | Finds every T-SQL object and embedded SQL in C#, converts them with a Maker/Checker agent, proves behaviour against the real SQL Server, and generates DMS artifacts |
 
 ## What You Get
 
 - **Deterministic code analysis** — Tree-sitter parsing, dependency graphs, vulnerability scanning (OSV, 8 ecosystems), Mermaid diagrams. No AI guessing, just facts.
 - **AI-powered documentation** — Bedrock Claude generates architecture docs from your actual code context. An LLM Judge scores quality across 5 dimensions.
 - **Java transformation** — Pick a target (Java 21, Spring Boot), watch it run live via SSE, review the diff, download the result or open a PR.
+- **SQL Server → Aurora MySQL pathway** — Discover, convert, auto-verify, approve, validate data, then hand over to DMS. See [SQL Server → Aurora MySQL](#sql-server--aurora-mysql).
 - **Self-hosted & auditable** — Runs on your infrastructure. Every analysis persists, every transformation is replayable.
 
 Built with FastAPI, React 18, Strands Agents, and AWS Bedrock.
@@ -56,6 +58,7 @@ Services start on:
 - Backend API: http://localhost:8000
 - ATX Analysis Agent: http://localhost:8004
 - ATX Transform Agent: http://localhost:8005
+- MySQL 8.0 sandbox (conversion compile checks): `127.0.0.1:3307`
 
 ### Option B: Manual Setup
 
@@ -102,6 +105,57 @@ npm run dev                 # Vite dev server on :5173
 - **ATX Analysis Agent** — Runs AWS Application Transformation CLI for codebase assessment with real-time streaming output.
 - **ATX Transform Agent** — Executes Java modernization transformations (WebLogic/WebSphere to Spring Boot, version upgrades) with diff preview and PR creation.
 
+## SQL Server → Aurora MySQL
+
+Open **Database Discovery** in the UI (`/database-discovery`). The page shows the pathway:
+
+| Stage | What happens | Where |
+| --- | --- | --- |
+| 1. Discover | Deterministic scan of `.sql` scripts (ZIP upload or GitHub sub-path) and of SQL embedded in C#. Inventory, dependencies, MySQL compatibility findings, effort estimate. Optional AI summary. | `/database-discovery/:id` (5 tabs) |
+| 2. Convert | Maker/Checker/Reviewer agent on Bedrock rewrites each object as MySQL 8.0. | `/database-discovery/:id/migration` → Conversion |
+| 3. Auto-verify | Three checkers before a human sees it: compile in the MySQL sandbox, model review score, and behaviour tests that run the same inputs on SQL Server and MySQL (writes are rolled back). Measured differences are fed back to the Maker. | Conversion tab |
+| 4. Approve | Reviewer edits tests, re-converts, approves. Export `schema.sql` and `conversions.sql`. | Conversion tab |
+| 5. Validate | Copy sample rows (optional), then compare table checksums and procedure results between SQL Server and MySQL. | Validation tab |
+| 6. DMS | Download table mappings, task settings, CloudFormation and a README for full load + CDC. AMIE generates these; it never deploys them. | DMS tab |
+
+AMIE converts schema and code. DMS moves the data and replicates changes (CDC) until cutover.
+
+### Resources
+
+| Path | Contents |
+| --- | --- |
+| `.kiro/specs/sqlserver-to-aurora-mysql/` | Requirements, design and tasks for this pathway |
+| `backend/services/db_discovery/` | T-SQL scanner (sqlglot + masked-text rules), C# SQL scanner, MySQL compatibility rules |
+| `backend/services/db_conversion/` | Target DDL, MySQL sandbox, conversion agent, behaviour tests |
+| `backend/services/db_validation/` | SQL Server / MySQL connections, value normalisation, validation harness |
+| `backend/services/db_dms/` | DMS artifact generator |
+| `backend/routes/db_discovery.py`, `db_conversion.py`, `db_validation.py` | API under `/api/db-discovery`, `/api/db-conversion`, `/api/db-validation` |
+| `backend/prompts/sql-conversion-{maker,checker,tests}.md` | Agent prompts |
+| `samples/wwi-legacy-dotnet/` | Demo fixture: WideWorldImporters T-SQL plus a legacy .NET app. `build-demo-zip.sh` writes `/tmp/wwi-demo.zip` for upload. |
+| `infra/terraform/rds-sqlserver-test/` | Optional, billable test RDS for SQL Server with WideWorldImporters restored (`restore-wwi.sh`). See its README. |
+
+### Configuration
+
+| Variable | Purpose |
+| --- | --- |
+| `MYSQL_ROOT_PASSWORD` | Password for the local MySQL sandbox container |
+| `CONVERSION_MAX_ATTEMPTS` | Maker/Checker attempts per object (default 3) |
+| `VALIDATION_SQLSERVER_*` | Source SQL Server for behaviour tests and validation. Leave empty to skip behaviour tests; objects are then flagged "not behaviour-tested". |
+| `VALIDATION_MYSQL_*` | Target MySQL for validation (empty = the sandbox) |
+| `VALIDATION_ALLOW_COPY` | `true` enables copying sample rows from SQL Server to the target |
+
+To use the test RDS instance:
+
+```bash
+cd infra/terraform/rds-sqlserver-test
+terraform init
+terraform apply -var "allowed_cidr=$(curl -s https://checkip.amazonaws.com)/32"
+./restore-wwi.sh     # restores WideWorldImporters (~10–20 min); WRITE_ENV=1 also writes the .env lines
+terraform destroy    # when finished — the instance is billed hourly
+```
+
+The test instance is SQL Server Express, which has no SQL Server Agent, so it cannot run MS-CDC. Use Standard, Enterprise or Developer edition to try DMS CDC.
+
 ## Stopping Services
 
 ```bash
@@ -129,7 +183,8 @@ Copy `.env.example` to `.env` and configure:
 - `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_REGION` — AWS credentials for Bedrock
 - `AUTH_DISABLED=true` — Skip authentication (dev mode)
 - `LOCAL_AUTH_SECRET` — JWT signing key for local auth mode
-- `BEDROCK_MODEL_ID` — Claude model ID (default: `us.anthropic.claude-sonnet-4-5-20250929-v1:0`)
+- `BEDROCK_MODEL_ID` — Claude model ID (`.env.example` uses `us.anthropic.claude-opus-5-5`)
+- SQL Server → Aurora MySQL settings — see [Configuration](#configuration)
 
 See `.env.example` for the full list.
 
