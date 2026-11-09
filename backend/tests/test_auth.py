@@ -214,3 +214,40 @@ class TestAuthMiddleware:
             # /health is public
             response = client.get("/health")
             assert response.status_code == 200
+
+
+class TestFixedCredentials:
+    """LOCAL_AUTH_USERNAME + LOCAL_AUTH_PASSWORD restrict local-mode login."""
+
+    def _settings(self, mock):
+        mock.AUTH_DISABLED = False
+        mock.LOCAL_AUTH_SECRET = "fixed-secret"
+        mock.LOCAL_AUTH_USERNAME = "amie"
+        mock.LOCAL_AUTH_PASSWORD = "correct horse"
+        mock.COGNITO_USER_POOL_ID = ""
+        mock.COGNITO_CLIENT_ID = ""
+
+    def test_correct_credentials_get_token(self):
+        with patch("middleware.auth_routes.settings") as mock_routes:
+            self._settings(mock_routes)
+            response = client.post(
+                "/api/auth/login",
+                json={"username": "amie", "password": "correct horse"},
+            )
+            assert response.status_code == 200
+            payload = jwt.decode(
+                response.json()["access_token"], "fixed-secret", algorithms=["HS256"]
+            )
+            assert payload["sub"] == "amie"
+
+    def test_wrong_password_or_user_is_rejected(self):
+        with patch("middleware.auth_routes.settings") as mock_routes:
+            self._settings(mock_routes)
+            for body in (
+                {"username": "amie", "password": "wrong"},
+                {"username": "other", "password": "correct horse"},
+                {"username": "", "password": ""},
+            ):
+                response = client.post("/api/auth/login", json=body)
+                assert response.status_code == 401, body
+                assert "access_token" not in response.json()

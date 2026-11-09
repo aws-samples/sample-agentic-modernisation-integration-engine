@@ -61,11 +61,31 @@ async def login(body: LoginRequest) -> TokenResponse | JSONResponse:
             content={"detail": "Use Cognito hosted UI for authentication"},
         )
 
-    # Local mode — issue JWT
-    # In a real app, validate credentials against a user store.
-    # For local dev, accept any username/password.
+    # Local mode — issue JWT. With a fixed username and password configured, only those
+    # credentials are accepted; without them (local dev), any username/password is.
+    if _fixed_credentials() and not _credentials_match(body.username, body.password):
+        return JSONResponse(
+            status_code=401, content={"detail": "Invalid username or password"}
+        )
     token = _create_local_token(body.username, "admin")
     return TokenResponse(access_token=token)
+
+
+def _fixed_credentials() -> tuple[str, str] | None:
+    user, password = settings.LOCAL_AUTH_USERNAME, settings.LOCAL_AUTH_PASSWORD
+    if isinstance(user, str) and isinstance(password, str) and user and password:
+        return user, password
+    return None
+
+
+def _credentials_match(username: str, password: str) -> bool:
+    expected = _fixed_credentials()
+    if expected is None:
+        return False
+    # Compare both fields every time, in constant time, so timing reveals neither.
+    user_ok = secrets.compare_digest(username.encode(), expected[0].encode())
+    pass_ok = secrets.compare_digest(password.encode(), expected[1].encode())
+    return user_ok and pass_ok
 
 
 # ---------------------------------------------------------------------------

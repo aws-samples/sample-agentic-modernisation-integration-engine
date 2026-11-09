@@ -1,0 +1,9 @@
+# Copy to terraform.tfvars (git-ignored) and adjust.
+
+region       = "us-east-1"
+app_username = "amie"
+# app_password = ""          # empty = generated; read with `terraform output -raw app_password`
+
+# The test SQL Server from ../rds-sqlserver-test. Set false if it is not deployed.
+sqlserver_enabled    = true
+sqlserver_identifier = "amie-wwi-test"

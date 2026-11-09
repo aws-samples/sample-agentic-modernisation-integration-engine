@@ -49,6 +49,8 @@ class TablePlan:
     name: str
     columns: list[str]
     excluded: list[dict] = field(default_factory=list)
+    # Spatial columns: left out of checksums, but copied (as WKB) so NOT NULL columns load.
+    spatial: list[dict] = field(default_factory=list)
 
 
 def plan_tables(report: dict, object_ids: list[str] | None = None) -> list[TablePlan]:
@@ -59,9 +61,11 @@ def plan_tables(report: dict, object_ids: list[str] | None = None) -> list[Table
             continue
         if wanted is not None and o["id"] not in wanted:
             continue
-        cols, excluded = [], []
+        cols, excluded, spatial = [], [], []
         for c in o["columns"]:
-            base = c["sql_type"].split("(")[0]
+            base = c["sql_type"].split("(")[0].lower()
+            if base in ("geography", "geometry") and not c.get("computed"):
+                spatial.append({"name": c["name"], "base": base})
             if c.get("computed"):
                 excluded.append({"column": c["name"], "reason": "computed column"})
             elif c["mysql_type"] in _UNMAPPABLE or base in _EXCLUDED_BASE_TYPES:
@@ -73,7 +77,9 @@ def plan_tables(report: dict, object_ids: list[str] | None = None) -> list[Table
                 )
             else:
                 cols.append(c["name"])
-        plans.append(TablePlan(o["id"], o["schema"], o["name"], cols, excluded))
+        plans.append(
+            TablePlan(o["id"], o["schema"], o["name"], cols, excluded, spatial)
+        )
     return plans
 
 
@@ -81,6 +87,31 @@ def _source_select(plan: TablePlan, top: int | None = None) -> str:
     cols = ", ".join(ms_quote(c) for c in plan.columns)
     top_sql = f"TOP ({int(top)}) " if top else ""
     return f"SELECT {top_sql}{cols} FROM {ms_quote(plan.schema)}.{ms_quote(plan.name)}"
+
+
+def _copy_select(plan: TablePlan, top: int | None = None) -> str:
+    """Like _source_select, plus spatial columns as WKB (longitude, latitude order)."""
+    exprs = [ms_quote(c) for c in plan.columns] + [
+        f"{ms_quote(s['name'])}.STAsBinary() AS {ms_quote(s['name'])}"
+        for s in plan.spatial
+    ]
+    top_sql = f"TOP ({int(top)}) " if top else ""
+    return f"SELECT {top_sql}{', '.join(exprs)} FROM {ms_quote(plan.schema)}.{ms_quote(plan.name)}"
+
+
+def _spatial_mark(tcur, plan: TablePlan, s: dict) -> str:
+    """Insert placeholder for a spatial column, using the target column's SRID."""
+    tcur.execute(
+        "SELECT SRS_ID FROM information_schema.COLUMNS "
+        "WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND COLUMN_NAME = %s",
+        (plan.schema, plan.name, s["name"]),
+    )
+    row = tcur.fetchone()
+    srid = int(row[0]) if row and row[0] is not None else 0
+    if srid == 0:
+        return "ST_GeomFromWKB(%s)"
+    # SQL Server WKB is (x=longitude, y=latitude); MySQL's default for SRID 4326 is lat-long.
+    return f"ST_GeomFromWKB(%s, {srid}, 'axis-order=long-lat')"
 
 
 def _target_select(plan: TablePlan) -> str:
@@ -320,19 +351,32 @@ def copy_tables(
             }
             try:
                 scur = src.cursor()
-                scur.execute(_source_select(plan, top=max_rows))
+                scur.execute(_copy_select(plan, top=max_rows))
                 rows = [tuple(_target_value(v) for v in r) for r in scur.fetchall()]
                 target = f"{mysql_quote(plan.schema)}.{mysql_quote(plan.name)}"
                 tcur.execute(f"DELETE FROM {target}")
                 if rows:
-                    cols = ", ".join(mysql_quote(c) for c in plan.columns)
-                    marks = ", ".join(["%s"] * len(plan.columns))
+                    names = plan.columns + [s["name"] for s in plan.spatial]
+                    cols = ", ".join(mysql_quote(c) for c in names)
+                    marks = ", ".join(
+                        ["%s"] * len(plan.columns)
+                        + [_spatial_mark(tcur, plan, s) for s in plan.spatial]
+                    )
                     tcur.executemany(
                         f"INSERT INTO {target} ({cols}) VALUES ({marks})", rows
                     )
                 item.update(rows=len(rows), status="copied")
             except Exception as exc:
-                item.update(status="error", error=connections.safe_error(exc))
+                errno = exc.args[0] if getattr(exc, "args", None) else None
+                if (
+                    errno == 208
+                ):  # the scripts define a table the database does not have
+                    item.update(
+                        status="missing_in_source",
+                        error="Table is defined in the scripts but does not exist in the SQL Server database",
+                    )
+                else:
+                    item.update(status="error", error=connections.safe_error(exc))
             results.append(item)
     finally:
         src.close()

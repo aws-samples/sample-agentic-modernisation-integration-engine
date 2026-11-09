@@ -81,6 +81,39 @@ npm run build               # Verify production build
 npm run dev                 # Vite dev server on :5173
 ```
 
+### Option C: Deploy to AWS (ECS Fargate + CloudFront)
+
+`infra/terraform/ecs-app/` deploys the whole app to your AWS account:
+- CloudFront serves HTTPS on a `*.cloudfront.net` address and reaches an internal ALB through a VPC origin.
+- One Fargate task (ARM64) runs all four containers in private subnets of the default VPC.
+- Aurora MySQL Serverless v2 replaces the local MySQL sandbox; EFS replaces the Docker volumes.
+- Sign-in is a single fixed username and password. The password and other secrets live in Secrets Manager.
+
+Prerequisites: Terraform 1.5+, the AWS CLI, Docker with `buildx`, and credentials that can create VPC, ECS, RDS, EFS, CloudFront, IAM and Secrets Manager resources. Bedrock model access is needed in the target region.
+
+```bash
+cd infra/terraform/ecs-app
+cp terraform.tfvars.example terraform.tfvars    # username, region; set sqlserver_enabled=false
+                                                # if the test SQL Server is not deployed
+terraform init
+terraform apply -target=aws_ecr_repository.this # 1. image repositories
+./build-push.sh                                 # 2. build and push the 4 ARM64 images
+terraform apply                                 # 3. everything else (~20 min)
+
+terraform output app_url                        # open in a browser
+terraform output -raw app_password              # sign in as app_username (default: amie)
+```
+
+To redeploy after a code change, run `./build-push.sh --deploy`. Expect a minute or two of downtime, because the old task stops before the new one starts.
+
+To remove the stack, run `terraform destroy`. If you also deployed `infra/terraform/rds-sqlserver-test/`, destroy this stack first, because it adds a rule to the SQL Server's security group.
+
+Notes:
+- **Cost:** roughly $90–130 a month while running.
+- **Streaming:** CloudFront cuts off AI and ATX streams that send nothing for 60 seconds. Raising `origin_read_timeout` to 180 needs a CloudFront quota increase.
+
+See [`infra/terraform/ecs-app/README.md`](infra/terraform/ecs-app/README.md) for the architecture, IAM, operations and limits.
+
 ## Architecture Overview
 
 ```
@@ -133,6 +166,7 @@ AMIE converts schema and code. DMS moves the data and replicates changes (CDC) u
 | `backend/prompts/sql-conversion-{maker,checker,tests}.md` | Agent prompts |
 | `samples/wwi-legacy-dotnet/` | Demo fixture: WideWorldImporters T-SQL plus a legacy .NET app. `build-demo-zip.sh` writes `/tmp/wwi-demo.zip` for upload. |
 | `infra/terraform/rds-sqlserver-test/` | Optional, billable test RDS for SQL Server with WideWorldImporters restored (`restore-wwi.sh`). See its README. |
+| `infra/terraform/ecs-app/` | Optional, billable deployment of the whole app to ECS Fargate behind CloudFront (HTTPS, fixed-user sign-in), with Aurora MySQL and EFS. See its README. |
 
 ### Configuration
 

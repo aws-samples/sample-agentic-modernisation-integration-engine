@@ -26,6 +26,9 @@ export async function login(username: string, password: string): Promise<{ token
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
   });
+  if (response.status === 401) {
+    throw new Error('Invalid username or password');
+  }
   if (!response.ok) {
     throw new Error(`Login failed: ${response.status}`);
   }
@@ -36,7 +39,12 @@ export async function login(username: string, password: string): Promise<{ token
     assertRelativeUrl(data.redirect);
   }
 
-  return data as { token: string };
+  // The backend's TokenResponse names the JWT `access_token`.
+  const token = typeof data.access_token === 'string' ? data.access_token : data.token;
+  if (typeof token !== 'string' || !token) {
+    throw new Error('Login failed: no token in response');
+  }
+  return { token };
 }
 
 export function getStoredToken(): string | null {

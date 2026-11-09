@@ -438,3 +438,43 @@ def test_compare_procedure_matches_chunked_for_json():
         src, tgt, {"procedure": "Website.SearchForCustomers", "params": []}
     )
     assert result["status"] == "match", result["details"]
+
+
+def test_copy_reports_missing_source_table():
+    class Missing(Exception):
+        pass
+
+    class Cur:
+        def execute(self, sql, *_a):
+            if "SELECT" in sql:
+                raise Missing(
+                    208, b"Invalid object name 'DataLoadSimulation.AreaCode'."
+                )
+
+    class Conn:
+        def cursor(self):
+            return Cur()
+
+        def close(self):
+            pass
+
+    report = {
+        "objects": [
+            {
+                "id": "table:dataloadsimulation.areacode",
+                "schema": "DataLoadSimulation",
+                "name": "AreaCode",
+                "type": "table",
+                "subtype": "standard",
+                "file": "x.sql",
+                "line": 1,
+                "primary_key": [],
+                "columns": [_col("Code", "int", "INT")],
+            }
+        ]
+    }
+    out = harness.copy_tables(
+        report, None, 10, connect_source=Conn, connect_target=Conn
+    )
+    assert out["tables"][0]["status"] == "missing_in_source"
+    assert "does not exist" in out["tables"][0]["error"]

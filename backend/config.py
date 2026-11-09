@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     # Authentication
     AUTH_DISABLED: bool = False
     LOCAL_AUTH_SECRET: str = ""
+    # Fixed sign-in for local mode. When both are set, /api/auth/login accepts only this
+    # username and password; when either is empty, local mode accepts any credentials (dev).
+    LOCAL_AUTH_USERNAME: str = ""
+    LOCAL_AUTH_PASSWORD: str = ""
     COGNITO_USER_POOL_ID: str = ""
     COGNITO_CLIENT_ID: str = ""
 

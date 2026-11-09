@@ -37,7 +37,10 @@ FROM nginx:1.27-alpine AS serve
 
 # wget (busybox) is used by the health check below and by docker-compose.
 # Replace the default site config with our reverse-proxy configuration.
-COPY nginx.conf /etc/nginx/nginx.conf
+# nginx.conf is a template: docker-entrypoint-amie.sh fills in the upstream hosts and
+# resolver (defaults suit docker-compose) and writes /tmp/nginx.conf at start-up.
+COPY nginx.conf /etc/nginx/nginx.conf.template
+COPY --chmod=0755 docker-entrypoint-amie.sh /usr/local/bin/docker-entrypoint-amie.sh
 
 # Ship the compiled SPA. The build stage emits to /app/dist (Vite outDir).
 COPY --from=build /app/dist /usr/share/nginx/html
@@ -48,7 +51,7 @@ RUN mkdir -p /tmp/nginx/client_body /tmp/nginx/proxy /tmp/nginx/fastcgi \
              /tmp/nginx/uwsgi /tmp/nginx/scgi \
     && touch /tmp/nginx.pid \
     && chown -R nginx:nginx /tmp/nginx /tmp/nginx.pid /usr/share/nginx/html \
-    && chown nginx:nginx /etc/nginx/nginx.conf
+    && chown nginx:nginx /etc/nginx/nginx.conf.template
 
 USER nginx
 
@@ -59,4 +62,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD wget -q --spider http://127.0.0.1:3000/ || exit 1
 
 # Run nginx in the foreground (daemon off) so it is PID 1 in the container.
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT []
+CMD ["/usr/local/bin/docker-entrypoint-amie.sh"]
