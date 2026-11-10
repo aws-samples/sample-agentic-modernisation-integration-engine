@@ -97,11 +97,14 @@ def resolve_tree(repo_id: str) -> Path:
 def _archive_members(tree: Path) -> list[tuple[Path, str]]:
     """Collect ``(absolute_path, arcname)`` pairs for everything to archive.
 
-    Excludes ``.git`` and anything resolving outside ``tree``.
+    Excludes ``.git``, .NET ``bin/``/``obj/`` build output, and anything resolving
+    outside ``tree``.
     """
+    from services.file_comparison import is_build_output
+
     members: list[tuple[Path, str]] = []
     for path in sorted(tree.rglob("*")):
-        if ".git" in path.relative_to(tree).parts:
+        if is_build_output(tree, path):
             continue
         if not path.is_file():
             continue

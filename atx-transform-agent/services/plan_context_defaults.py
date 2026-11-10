@@ -66,6 +66,8 @@ SOURCE_AGENT_DEFAULT = "agent-default"
 #: prefix match would silently apply one's target version to the other.
 DEFAULT_PLAN_CONTEXT_BY_DEFINITION: dict[str, str] = {
     "AWS/java-version-upgrade": "additionalPlanContext=The target Java version to upgrade to is Java 21",
+    # In autonomous mode (-x) the agent cannot ask which .NET version to target.
+    "AWS/dotnet-modernization": "additionalPlanContext=The target .NET version is .NET 10",
 }
 
 # ``transformation_type`` may arrive as a package ARN — the request validator admits

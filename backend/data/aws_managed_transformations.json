@@ -1,5 +1,14 @@
 [
   {
+    "id": "AWS/dotnet-modernization",
+    "name": ".NET Framework to .NET 10",
+    "description": "Port .NET Framework solutions to cross-platform .NET 10 on Linux: SDK-style projects, ASP.NET Core (Web Forms to Blazor Server or MVC), VB.NET to C#, with assessment, plan, validation and next-steps reports",
+    "source": ".NET Framework 4.x",
+    "target": ".NET 10",
+    "type": "aws-managed",
+    "atxCommand": "atx custom def exec -n AWS/dotnet-modernization -p . -x -t"
+  },
+  {
     "id": "AWS/java-aws-sdk-v1-to-v2",
     "name": "AWS SDK V1 to V2 (Java)",
     "description": "Upgrade the AWS SDK from V1 to V2 for Java projects using Maven or Gradle",

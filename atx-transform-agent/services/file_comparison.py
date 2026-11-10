@@ -283,12 +283,37 @@ def _collect_statuses(repo_id: str) -> dict:
     return {"entries": entries, "error": None}
 
 
+_DOTNET_PROJECT_SUFFIXES = (".csproj", ".vbproj", ".fsproj")
+_DOTNET_BUILD_DIRS = {"bin", "obj"}
+
+
+def is_build_output(root: Path, path: Path) -> bool:
+    """True for ``.git`` contents and .NET ``bin/``/``obj/`` build output.
+
+    AWS/dotnet-modernization builds the solution to validate it, leaving hundreds of
+    compiled files behind. ``bin``/``obj`` count as build output only when the directory
+    holding them also holds a .NET project file, so a repository's own ``bin/`` scripts
+    still appear in the diff and the download.
+    """
+    rel = path.relative_to(root)
+    if ".git" in rel.parts:
+        return True
+    for i, part in enumerate(rel.parts[:-1]):
+        if part in _DOTNET_BUILD_DIRS:
+            project_dir = root.joinpath(*rel.parts[:i])
+            if any(next(project_dir.glob(f"*{s}"), None) for s in _DOTNET_PROJECT_SUFFIXES):
+                return True
+    return False
+
+
+def _files(root: Path) -> set[Path]:
+    return {p.relative_to(root) for p in root.rglob("*") if p.is_file() and not is_build_output(root, p)}
+
+
 def _compare_directories(original: Path, transformed: Path) -> list[dict]:
     """Compare two directory trees, returning one classified entry per file."""
-    original_files = {p.relative_to(original) for p in original.rglob("*") if p.is_file() and ".git" not in p.parts}
-    transformed_files = {
-        p.relative_to(transformed) for p in transformed.rglob("*") if p.is_file() and ".git" not in p.parts
-    }
+    original_files = _files(original)
+    transformed_files = _files(transformed)
 
     entries = []
     for rel_path in sorted(original_files | transformed_files):
@@ -324,7 +349,7 @@ def _list_as_added(directory: Path) -> list[dict]:
     """Classify every file in a directory as 'added' (no original to compare)."""
     entries = []
     for file_path in sorted(directory.rglob("*")):
-        if file_path.is_file() and ".git" not in file_path.parts:
+        if file_path.is_file() and not is_build_output(directory, file_path):
             entries.append(_entry(file_path.relative_to(directory).as_posix(), "added", None, _safe_read(file_path)))
     return entries
 

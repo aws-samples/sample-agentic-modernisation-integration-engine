@@ -8,10 +8,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 22+ (required by ATX CLI)
-# `--no-install-recommends` matches the layer above and is what Trivy's DS-0029
-# check asserts (a HIGH finding without it). Recommended packages here are build
-# and doc extras the ATX CLI does not need, and every one of them is additional
-# attack surface plus additional CVEs for the image scan to report.
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
@@ -39,6 +35,18 @@ RUN curl -fsSL https://transform-cli.awsstatic.com/install.sh | bash \
     && AWS_ACCESS_KEY_ID=build-probe AWS_SECRET_ACCESS_KEY=build-probe AWS_DEFAULT_REGION=us-east-1 atx --version
 
 # Install uv for dependency management
+# .NET 10 SDK for AWS/dotnet-modernization: the agent builds the ported solution to
+# validate it. libicu is required by the SDK on Debian slim images.
+ENV DOTNET_ROOT=/usr/share/dotnet DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+       "$(apt-cache search --names-only '^libicu[0-9]+$' | cut -d' ' -f1 | head -1)" \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
+    && bash /tmp/dotnet-install.sh --channel 10.0 --install-dir "$DOTNET_ROOT" \
+    && rm /tmp/dotnet-install.sh \
+    && ln -sf "$DOTNET_ROOT/dotnet" /usr/local/bin/dotnet \
+    && dotnet --list-sdks
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
 WORKDIR /app

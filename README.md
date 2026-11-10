@@ -114,6 +114,20 @@ Notes:
 
 See [`infra/terraform/ecs-app/README.md`](infra/terraform/ecs-app/README.md) for the architecture, IAM, operations and limits.
 
+## Sample Repositories for Testing
+
+Public repositories you can paste into the UI to try each feature:
+
+| Feature | Repository | What it contains |
+| --- | --- | --- |
+| Code analysis (Analysis, ATX Analysis) | [Deenadayaalan/task-manager](https://github.com/Deenadayaalan/task-manager) | Full-stack app: Java Spring Boot backend, AngularJS frontend, Terraform infrastructure |
+| ATX Transform: Java Version Upgrade | [Deenadayaalan/task-manager](https://github.com/Deenadayaalan/task-manager) | `backend/`: Spring Boot 2.7.18 on Java 1.8. The default target is Java 21. |
+| ATX Transform: Angular to React | [Deenadayaalan/task-manager](https://github.com/Deenadayaalan/task-manager) | `frontend/`: AngularJS 1.8.3 with `angular-route` |
+| ATX Transform: .NET Framework to .NET 10 | [aws-samples/sample-amazon-q-transform-dotnet-4.8-webapi](https://github.com/aws-samples/sample-amazon-q-transform-dotnet-4.8-webapi) | .NET Framework 4.8 Web API (`ProductsApp.sln`) with 11 unit tests. A test run took about 30 minutes; the result targets `net10.0`, builds with 0 errors and passes all tests. |
+| Database Discovery and the SQL Server → Aurora MySQL pathway | `samples/wwi-legacy-dotnet/` (in this repo) | WideWorldImporters T-SQL plus a legacy .NET app. Run `samples/wwi-legacy-dotnet/build-demo-zip.sh`; it writes `wwi-demo.zip` to the current directory for upload. |
+
+All repositories use the `main` branch. ATX transformations need AWS credentials with AWS Transform custom permissions (the ECS deployment's task role has them).
+
 ## Architecture Overview
 
 ```
